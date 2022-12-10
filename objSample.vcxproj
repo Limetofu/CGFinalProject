@@ -24,6 +24,7 @@
     <ProjectGuid>{0a80579e-04a8-4e69-9b8d-003e97f9acbf}</ProjectGuid>
     <RootNamespace>objSample</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>CG_FinalProject</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -150,6 +151,7 @@
   <ItemGroup>
     <ClInclude Include="objRead.h" />
     <ClInclude Include="player.h" />
+    <ClInclude Include="pos.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="texture.h" />

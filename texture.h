@@ -1,12 +1,5 @@
 #include "stdafx.h"
 
-struct Material {
-	glm::vec3 ambient;
-	glm::vec3 diffuse;
-	glm::vec3 specular;
-	float shininess;
-};
-
 GLubyte* LoadDIBitmap(const char* filename, BITMAPINFO** info)
 {
 	FILE* fp;

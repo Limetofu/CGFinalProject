@@ -4,21 +4,30 @@
 #include "objRead.h"
 #include "player.h"
 #include "texture.h"
-
-#define TRI_COUNT 1000
+#include "pos.h"
 
 using namespace std;
 
-GLuint g_window_w = 1280;
-GLuint g_window_h = 720;
+GLuint g_window_w = 1000;
+GLuint g_window_h = 1000;
 
 int g_window_middle_x = g_window_w / 2;
 int g_window_middle_y = g_window_h / 2;
+
+GLfloat test_scale_value = 0.05f;
+
+GLuint VAO_rectangle;
+GLuint VBO_rectangle;
 
 GLuint VAO[10];
 GLuint VBO_position[10];
 GLuint VBO_normal[10];
 GLuint VBO_texture[10];
+
+GLuint VAO_weapon[7];
+GLuint VBO_weapon_position[7];
+GLuint VBO_weapon_normal[7];
+GLuint VBO_weapon_texture[7];
 
 GLuint textures[10];
 
@@ -37,40 +46,18 @@ int print_solid = true;
 const int num_vertices = 3;
 const int num_triangles = 1;
 
-void Display();
-void Reshape(int w, int h);
-void Keyboard(unsigned char key, int x, int y);
-void KeyboardUp(unsigned char key, int x, int y);
-void InitBuffer();
-void InsertObj();
-void InitLight(char col);
-void TimerFunction(int value);
-void Mouse(int button, int state, int x, int y);
-void Motion(int x, int y);
-void PassiveMotion(int x, int y);
-
-GLfloat mouse_radian(double x1, double y1, double x2, double y2);
-void DrawPlayer(glm::mat4 TR, unsigned int modelLocation);
-void DrawFloor(glm::mat4 TR, unsigned int modelLocation);
-
-void SetCamera();
-void SetProjection();
-void SetMaterial(Material m);
-void InitTexture();
 
 Material DesertMaterial = {
-	{ 1.0f, 0.5f, 0.31f },
-	{ 0.7f, 0.42f, 0.26f },
+	{ 1.0f, 1.0f, 1.0f },
+	{ 0.7f, 0.42f, 0.2f },
 	{ 0.5f, 0.5f, 0.5f },
-	{32.0f}
+	{ 32.0f }
 };
 
-GLfloat cameraPosZ = 10.0f;
-GLfloat cameraPosX = 0.0f;
-GLfloat cameraPosY = 5.0f;
+POS cameraPos = { 0.0f, 2.0f, 5.0f };
+POS lightPos = { 0.0f, 0.0f, 2.0f };
 
 GLfloat light_radian = 3.0f;
-GLfloat lightX = 0.0f, lightY = 0.0f, lightZ = 2.0f;
 int light_rotate = false;
 GLfloat light_degree = 0.0f;
 
@@ -87,11 +74,27 @@ objRead objReader_right_full;
 objRead objReader_left_full;
 objRead objReader_idle;
 
-GLint Object_LH = objReader_left_half.loadObj_normalize_center("soldier_after.obj");
-GLint Object_RH = objReader_right_half.loadObj_normalize_center("soldier_before.obj");
-GLint Object_RF = objReader_right_full.loadObj_normalize_center("soldier_2.obj");
-GLint Object_LF = objReader_left_full.loadObj_normalize_center("soldier_3.obj");
-GLint Object_idle = objReader_idle.loadObj_normalize_center("soldier_idle.obj");
+GLint Object_LH = objReader_left_half.loadObj_normalize_center("models/soldier_after.obj");
+GLint Object_RH = objReader_right_half.loadObj_normalize_center("models/soldier_before.obj");
+GLint Object_RF = objReader_right_full.loadObj_normalize_center("models/soldier_2.obj");
+GLint Object_LF = objReader_left_full.loadObj_normalize_center("models/soldier_3.obj");
+GLint Object_idle = objReader_idle.loadObj_normalize_center("models/soldier_idle.obj");
+
+objRead objReader_WEAPON_handgun;
+objRead objReader_WEAPON_smg;
+objRead objReader_WEAPON_assault_rifle;
+objRead objReader_WEAPON_sniper_rifle;
+objRead objReader_WEAPON_shotgun;
+objRead objReader_WEAPON_flame_thrower;
+objRead objReader_WEAPON_saw;
+
+GLint handgun_vertex_count =		objReader_WEAPON_handgun.loadObj_normalize_center("models/handgun.obj");
+GLint smg_vertex_count =			objReader_WEAPON_smg.loadObj_normalize_center("models/smg.obj");
+GLint assault_rifle_vertex_count =	objReader_WEAPON_assault_rifle.loadObj_normalize_center("models/assault_rifle.obj");
+GLint sniper_rifle_vertex_count =	objReader_WEAPON_sniper_rifle.loadObj_normalize_center("models/sniper_rifle.obj");
+GLint shotgun_vertex_count =		objReader_WEAPON_shotgun.loadObj_normalize_center("models/shotgun.obj");
+//GLint flame_thrower_vertex_count =	objReader_WEAPON_flame_thrower.loadObj_normalize_center("models/flame_thrower.obj");
+//GLint saw_vertex_count =			objReader_WEAPON_shotgun.loadObj_normalize_center("models/saw.obj");
 
 int player_anime = false;
 
@@ -169,19 +172,16 @@ void Display()
 	if (print_solid) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	else glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-
 	glm::mat4 TR = glm::mat4(1.0f);
 	unsigned int modelLocation = glGetUniformLocation(s_program[0], "modelTransform");
 
-	/* ------------------------------ Initilize Camera, Proj ------------------------------ */
 	SetProjection();
 	SetCamera();
-	/* ------------------------------------------------------------------------------------ */
 	SetMaterial(DesertMaterial);
-
 
 	DrawFloor(TR, modelLocation);
 	DrawPlayer(TR, modelLocation);
+	//DrawWeapon(TR, modelLocation);
 	
 	glutSwapBuffers();
 }
@@ -199,7 +199,7 @@ void SetMaterial(Material m) {
 }
 
 void DrawPlayer(glm::mat4 TR, unsigned int modelLocation) {
-	InitLight('g');
+	InitLight();
 
 	glUseProgram(s_program[0]);
 	glBindVertexArray(VAO[0]);
@@ -219,31 +219,75 @@ void DrawPlayer(glm::mat4 TR, unsigned int modelLocation) {
 	TR = glm::translate(TR, glm::vec3(0.0, 0.0, 0.05f));
 }
 
-void DrawFloor(glm::mat4 TR, unsigned int modelLocation) {
+void DrawWeapon(glm::mat4 TR, unsigned int modelLocation) {
+	glUseProgram(s_program[0]);
 
+	// handgun
+	glBindVertexArray(VAO_weapon[0]);
+	glBindTexture(GL_TEXTURE_2D, textures[2]);
+
+	TR = glm::translate(TR, glm::vec3(0.0, 0.1, 0.5f));
+	TR = glm::scale(TR, glm::vec3(test_scale_value, test_scale_value, test_scale_value));
+
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
+
+	glDrawArrays(GL_TRIANGLES, 0, handgun_vertex_count);
+}
+
+void DrawFloor(glm::mat4 TR, unsigned int modelLocation) {
+	InitLight();
+	
+	glUseProgram(s_program[0]);
+	glBindVertexArray(VAO_rectangle);
+	glBindTexture(GL_TEXTURE_2D, textures[1]);
+	
+	TR = glm::translate(TR, glm::vec3(0.0f, -0.5f, 0.0f));
+	TR = glm::scale(TR, glm::vec3(20.0f, 0.01f, 20.0f));
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
+
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 }
 
 void InitTexture() {
 	BITMAPINFO* bmp;
-	glGenTextures(1, &textures[0]); //--- 텍스처 생성
+	glGenTextures(10, textures); //--- 텍스처 생성
 	glBindTexture(GL_TEXTURE_2D, textures[0]); //--- 텍스처 바인딩
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); //--- 현재 바인딩된 텍스처의 파라미터 설정하기
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	unsigned char* data = LoadDIBitmap("soldier_texture.bmp", &bmp); //--- 텍스처로 사용할 비트맵 이미지 로드하기
-	glTexImage2D(GL_TEXTURE_2D, 0, 3, bmp->bmiHeader.biWidth, bmp->bmiHeader.biHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data); //---텍스처 이미지 정의
-	printf("%d, %d\n", bmp->bmiHeader.biWidth, bmp->bmiHeader.biHeight);
+	unsigned char* data = LoadDIBitmap("textures/soldier_texture.bmp", &bmp); //--- 텍스처로 사용할 비트맵 이미지 로드하기
+	glTexImage2D(GL_TEXTURE_2D, 0, 3, bmp->bmiHeader.biWidth, bmp->bmiHeader.biHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+	BITMAPINFO* concrete_bmp;
+	glBindTexture(GL_TEXTURE_2D, textures[1]); //--- 텍스처 바인딩
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	unsigned char* concrete_data = LoadDIBitmap("textures/concrete_texture.bmp", &concrete_bmp);
+	glTexImage2D(GL_TEXTURE_2D, 0, 3, concrete_bmp->bmiHeader.biWidth, concrete_bmp->bmiHeader.biHeight, 
+			     0, GL_RGB, GL_UNSIGNED_BYTE, concrete_data);
+
+	BITMAPINFO* weapon_bmp;
+	glBindTexture(GL_TEXTURE_2D, textures[2]); //--- 텍스처 바인딩
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	unsigned char* weapon_data = LoadDIBitmap("textures/gun_texture.bmp", &weapon_bmp);
+	glTexImage2D(GL_TEXTURE_2D, 0, 3, weapon_bmp->bmiHeader.biWidth, weapon_bmp->bmiHeader.biHeight,
+		0, GL_RGB, GL_UNSIGNED_BYTE, weapon_data);
 }
 
-void InitLight(char col) {
-	lightX = cos(glm::radians(light_degree + 90.0f)) * light_radian;
-	lightZ = sin(glm::radians(light_degree + 90.0f)) * light_radian;
+void InitLight() {
+	lightPos.x = cos(glm::radians(light_degree + 90.0f)) * light_radian;
+	lightPos.z = sin(glm::radians(light_degree + 90.0f)) * light_radian;
 
 	glUseProgram(s_program[0]);
 
 	unsigned int lightPosLocation = glGetUniformLocation(s_program[0], "lightPos");
-	glUniform3f(lightPosLocation, lightX, lightY, lightZ);
+	glUniform3f(lightPosLocation, lightPos.x, lightPos.y, lightPos.z);
 
 	unsigned int lightColorLocation = glGetUniformLocation(s_program[0], "lightColor");
 	if (light_color == 0) glUniform3f(lightColorLocation, 1.0, 1.0, 1.0);
@@ -251,13 +295,8 @@ void InitLight(char col) {
 	else if (light_color == 2) glUniform3f(lightColorLocation, 0.15, 0.8, 0.15);
 	else if (light_color == 3) glUniform3f(lightColorLocation, 0.15, 0.15, 0.8);
 
-	unsigned int objColorLocation = glGetUniformLocation(s_program[0], "objectColor");
-	if (col == 'r') glUniform3f(objColorLocation, 0.95, 0.13, 0.12);
-	else if (col == 'g') glUniform3f(objColorLocation, 0.12, 0.96, 0.13);
-	else if (col == 'b') glUniform3f(objColorLocation, 0.09, 0.11, 0.94);
-
 	unsigned int viewPosLocation = glGetUniformLocation(s_program[0], "viewPos");
-	glUniform3f(viewPosLocation, cameraPosX, cameraPosY, cameraPosZ);
+	glUniform3f(viewPosLocation, cameraPos.x, cameraPos.y, cameraPos.z);
 }
 
 void SetProjection() {
@@ -273,24 +312,23 @@ void SetProjection() {
 void SetCamera() {
 	glm::mat4 VR = glm::mat4(1.0f);
 
-	glm::vec3 cameraPos = glm::vec3(cameraPosX, cameraPosY, cameraPosZ); //--- 카메라 위치
+	glm::vec3 cameraPosVector = glm::vec3(cameraPos.x, cameraPos.y, cameraPos.z); //--- 카메라 위치
 	glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
-	glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
+	glm::vec3 cameraDirection = glm::normalize(cameraPosVector - cameraTarget);
 	glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 	glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
 	glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
 
-	VR = glm::lookAt(cameraPos, cameraDirection, cameraUp);
+	VR = glm::lookAt(cameraPosVector, cameraDirection, cameraUp);
 
 	unsigned int viewLocation = glGetUniformLocation(s_program[0], "viewTransform");
 	glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(VR));
 }
 
 void TimerFunction(int value) {
-	// lightZ = 2.0f
 	if (light_rotate) {
-		lightX = cos(glm::radians(light_degree + 90.0f)) * light_radian;
-		lightZ = sin(glm::radians(light_degree + 90.0f)) * light_radian;
+		lightPos.x = cos(glm::radians(light_degree + 90.0f)) * light_radian;
+		lightPos.z = sin(glm::radians(light_degree + 90.0f)) * light_radian;
 
 		light_degree += 1.0f;
 		if (light_degree >= 360.0f) light_degree = 0.0f;
@@ -359,7 +397,6 @@ void Keyboard(unsigned char key, int x, int y)
 		else player_anime = true;
 		break;
 	}
-
 	glutPostRedisplay();
 }
 
@@ -450,14 +487,38 @@ void InitBuffer()
 	glGenBuffers(10, VBO_normal);
 	glGenBuffers(10, VBO_texture);
 
+	glGenVertexArrays(1, &VAO_rectangle);
+	glGenBuffers(1, &VBO_rectangle);
+
+	glGenVertexArrays(7, VAO_weapon);
+	glGenBuffers(7, VBO_weapon_position);
+	glGenBuffers(7, VBO_weapon_normal);
+	glGenBuffers(7, VBO_weapon_texture);
+
 	// 2 triangles for quad floor
 	glUseProgram(s_program[0]);
-	InsertObj();
+	InsertPlayerObj();
+	InsertRectanglePos();
+	InsertWeaponObj();
 }
 
-void InsertObj() {
+void InsertRectanglePos() {
+	glBindVertexArray(VAO_rectangle);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_rectangle);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Pos_rectangle), Pos_rectangle, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+}
+
+void InsertPlayerObj() {
 	// left half
 	glBindVertexArray(VAO[0]);
+
 	glBindBuffer(GL_ARRAY_BUFFER, VBO_position[0]);
 	glBufferData(GL_ARRAY_BUFFER, objReader_left_half.outvertex.size() * sizeof(glm::vec3), &objReader_left_half.outvertex[0], GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
@@ -542,6 +603,26 @@ void InsertObj() {
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO_texture[4]);
 	glBufferData(GL_ARRAY_BUFFER, objReader_idle.outuv.size() * sizeof(glm::vec2), &objReader_idle.outuv[0], GL_STATIC_DRAW);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+	glEnableVertexAttribArray(2);
+}
+
+void InsertWeaponObj() {
+	// handgun
+	glBindVertexArray(VAO_weapon[0]);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_weapon_position[0]);
+	glBufferData(GL_ARRAY_BUFFER, objReader_WEAPON_handgun.outvertex.size() * sizeof(glm::vec3), &objReader_WEAPON_handgun.outvertex[0], GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_weapon_normal[0]);
+	glBufferData(GL_ARRAY_BUFFER, objReader_WEAPON_handgun.outnormal.size() * sizeof(glm::vec3), &objReader_WEAPON_handgun.outnormal[0], GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_weapon_texture[0]);
+	glBufferData(GL_ARRAY_BUFFER, objReader_WEAPON_handgun.outuv.size() * sizeof(glm::vec2), &objReader_WEAPON_handgun.outuv[0], GL_STATIC_DRAW);
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
 	glEnableVertexAttribArray(2);
 }

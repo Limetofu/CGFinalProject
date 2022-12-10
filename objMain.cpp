@@ -14,7 +14,7 @@ GLuint g_window_h = 1000;
 int g_window_middle_x = g_window_w / 2;
 int g_window_middle_y = g_window_h / 2;
 
-GLfloat test_scale_value = 0.05f;
+GLfloat test_scale_value = 0.02f;
 
 GLuint VAO_rectangle;
 GLuint VBO_rectangle;
@@ -47,24 +47,32 @@ const int num_vertices = 3;
 const int num_triangles = 1;
 
 
-Material DesertMaterial = {
-	{ 1.0f, 1.0f, 1.0f },
-	{ 0.7f, 0.42f, 0.2f },
-	{ 0.5f, 0.5f, 0.5f },
-	{ 32.0f }
+//Material DesertMaterial = {
+//	{ 1.0f, 1.0f, 1.0f },
+//	{ 0.7f, 0.42f, 0.2f },
+//	{ 0.5f, 0.5f, 0.5f },
+//	{ 32.0f }
+//};
+
+Light BasicLight = {
+	{0.2f, 0.2f, 0.2f}, // ambient
+	{0.5f, 0.5f, 0.5f}, // diffuse
+	{1.0f, 1.0f, 1.0f}, // specular
+	{1.0f},		// constant
+	{0.09f},	// linear
+	{0.032f},	// quadratic
+	{32.0f}		// shine
 };
 
 POS cameraPos = { 0.0f, 8.0f, 5.0f };
-POS lightPos = { 0.0f, 0.0f, 2.0f };
+POS lightPos = { 0.0f, 3.0f, 0.0f };
 
-GLfloat light_radian = 3.0f;
-int light_rotate = false;
-GLfloat light_degree = 0.0f;
+Player p;
 
 int light_on = true;
 int light_color = 0;
 
-int obj_num = 0;
+int obj_num = 4;
 int walk_num = 0;
 
 //--- load obj related variabales
@@ -85,7 +93,7 @@ objRead objReader_WEAPON_smg;
 objRead objReader_WEAPON_assault_rifle;
 objRead objReader_WEAPON_sniper_rifle;
 objRead objReader_WEAPON_shotgun;
-objRead objReader_WEAPON_flame_thrower;
+// objRead objReader_WEAPON_flame_thrower;
 objRead objReader_WEAPON_chainsaw;
 
 GLint handgun_vertex_count =		objReader_WEAPON_handgun.loadObj_normalize_center("models/handgun.obj");
@@ -93,10 +101,14 @@ GLint smg_vertex_count =			objReader_WEAPON_smg.loadObj_normalize_center("models
 GLint assault_rifle_vertex_count =	objReader_WEAPON_assault_rifle.loadObj_normalize_center("models/assault_rifle.obj");
 GLint sniper_rifle_vertex_count =	objReader_WEAPON_sniper_rifle.loadObj_normalize_center("models/sniper_rifle.obj");
 GLint shotgun_vertex_count =		objReader_WEAPON_shotgun.loadObj_normalize_center("models/shotgun.obj");
-//GLint flame_thrower_vertex_count =	objReader_WEAPON_flame_thrower.loadObj_normalize_center("models/flame_thrower.obj");
+// GLint flame_thrower_vertex_count =	objReader_WEAPON_flame_thrower.loadObj_normalize_center("models/flame_thrower.obj");
 GLint chainsaw_vertex_count =			objReader_WEAPON_chainsaw.loadObj_normalize_center("models/chainsaw.obj");
 
+
+
 int player_anime = false;
+
+
 
 int main(int argc, char** argv)
 {
@@ -139,8 +151,13 @@ int main(int argc, char** argv)
 	glLinkProgram(s_program[0]);
 	checkCompileErrors(s_program[0], "PROGRAM");
 
+
+
+
+
 	InitBuffer();
 	InitTexture();
+	p.init();
 
 	// callback functions
 	glutDisplayFunc(Display);
@@ -177,29 +194,41 @@ void Display()
 
 	SetProjection();
 	SetCamera();
-	SetMaterial(DesertMaterial);
+	SetLight(BasicLight);
 
 	DrawFloor(TR, modelLocation);
 	DrawPlayer(TR, modelLocation);
-	//DrawWeapon(TR, modelLocation);
+	DrawWeapon(TR, modelLocation);
 	
 	glutSwapBuffers();
 }
 
 
-
-
-void SetMaterial(Material m) {
+void SetLight(Light l) {
 	glUseProgram(s_program[0]);
 
-	glUniform3f(glGetUniformLocation(s_program[0], "material.ambient"), m.ambient[0], m.ambient[1], m.ambient[2]);
-	glUniform3f(glGetUniformLocation(s_program[0], "material.specular"), m.specular[0], m.specular[1], m.specular[2]);
-	glUniform3f(glGetUniformLocation(s_program[0], "material.diffuse"), m.diffuse[0], m.diffuse[1], m.diffuse[2]);
-	glUniform1f(glGetUniformLocation(s_program[0], "material.shininess"), m.shininess);
+	//glUniform3f(glGetUniformLocation(s_program[0], "material.ambient"), m.ambient[0], m.ambient[1], m.ambient[2]);
+	//glUniform3f(glGetUniformLocation(s_program[0], "material.specular"), m.specular[0], m.specular[1], m.specular[2]);
+	//glUniform3f(glGetUniformLocation(s_program[0], "material.diffuse"), m.diffuse[0], m.diffuse[1], m.diffuse[2]);
+	//glUniform1f(glGetUniformLocation(s_program[0], "material.shininess"), m.shininess);
+
+	glUniform1i(glGetUniformLocation(s_program[0], "material.diffuse"), 0);
+	glUniform1i(glGetUniformLocation(s_program[0], "material.specular"), 1);
+	glUniform1f(glGetUniformLocation(s_program[0], "material.shininess"), l.shininess);
+
+	glUniform3f(glGetUniformLocation(s_program[0], "light.position"), lightPos.x, lightPos.y, lightPos.z);
+
+	glUniform3f(glGetUniformLocation(s_program[0], "light.ambient"), l.ambient[0], l.ambient[1], l.ambient[2]);
+	glUniform3f(glGetUniformLocation(s_program[0], "light.diffuse"), l.diffuse[0], l.diffuse[1], l.diffuse[2]);
+	glUniform3f(glGetUniformLocation(s_program[0], "light.specular"), l.specular[0], l.specular[1], l.specular[2]);
+
+	glUniform1f(glGetUniformLocation(s_program[0], "light.constant"), l.constant);
+	glUniform1f(glGetUniformLocation(s_program[0], "light.linear"), l.linear);
+	glUniform1f(glGetUniformLocation(s_program[0], "light.quadratic"), l.quadratic);
 }
 
 void DrawPlayer(glm::mat4 TR, unsigned int modelLocation) {
-	InitLight();
+	SetLight(BasicLight);
 
 	glUseProgram(s_program[0]);
 	glBindVertexArray(VAO[0]);
@@ -226,7 +255,7 @@ void DrawWeapon(glm::mat4 TR, unsigned int modelLocation) {
 	glBindVertexArray(VAO_weapon[0]);
 	glBindTexture(GL_TEXTURE_2D, textures[2]);
 
-	TR = glm::translate(TR, glm::vec3(0.0, 0.1, 0.5f));
+	TR = glm::translate(TR, glm::vec3(0.0, 0.4, 0.5f));
 	TR = glm::scale(TR, glm::vec3(test_scale_value, test_scale_value, test_scale_value));
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
 	glDrawArrays(GL_TRIANGLES, 0, handgun_vertex_count);
@@ -237,18 +266,16 @@ void DrawWeapon(glm::mat4 TR, unsigned int modelLocation) {
 
 	// chainsaw
 	glBindVertexArray(VAO_weapon[6]);
-	glBindTexture(GL_TEXTURE_2D, textures[2]);
+	glBindTexture(GL_TEXTURE_2D, textures[3]);
 
-	TR = glm::translate(TR, glm::vec3(0.0, 0.1, 0.5f));
-	TR = glm::scale(TR, glm::vec3(test_scale_value, test_scale_value, test_scale_value));
+	TR = glm::scale(TR, glm::vec3(test_scale_value * 4, test_scale_value * 4, test_scale_value * 4));
+
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
 	glDrawArrays(GL_TRIANGLES, 0, chainsaw_vertex_count);
-
-
 }
 
 void DrawFloor(glm::mat4 TR, unsigned int modelLocation) {
-	InitLight();
+	SetLight(BasicLight);
 	
 	glUseProgram(s_program[0]);
 	glBindVertexArray(VAO_rectangle);
@@ -269,25 +296,7 @@ void InitTexture() {
 	InsertTexture(0, "textures/soldier_texture.bmp");
 	InsertTexture(1, "textures/concrete_texture.bmp");
 	InsertTexture(2, "textures/gun_texture.bmp");
-}
-
-void InitLight() {
-	lightPos.x = cos(glm::radians(light_degree + 90.0f)) * light_radian;
-	lightPos.z = sin(glm::radians(light_degree + 90.0f)) * light_radian;
-
-	glUseProgram(s_program[0]);
-
-	unsigned int lightPosLocation = glGetUniformLocation(s_program[0], "lightPos");
-	glUniform3f(lightPosLocation, lightPos.x, lightPos.y, lightPos.z);
-
-	unsigned int lightColorLocation = glGetUniformLocation(s_program[0], "lightColor");
-	if (light_color == 0) glUniform3f(lightColorLocation, 1.0, 1.0, 1.0);
-	else if (light_color == 1) glUniform3f(lightColorLocation, 0.8, 0.15, 0.15);
-	else if (light_color == 2) glUniform3f(lightColorLocation, 0.15, 0.8, 0.15);
-	else if (light_color == 3) glUniform3f(lightColorLocation, 0.15, 0.15, 0.8);
-
-	unsigned int viewPosLocation = glGetUniformLocation(s_program[0], "viewPos");
-	glUniform3f(viewPosLocation, cameraPos.x, cameraPos.y, cameraPos.z);
+	InsertTexture(3, "textures/chainsaw_texture.bmp");
 }
 
 void SetProjection() {
@@ -317,13 +326,13 @@ void SetCamera() {
 }
 
 void TimerFunction(int value) {
-	if (light_rotate) {
+	/*if (light_rotate) {
 		lightPos.x = cos(glm::radians(light_degree + 90.0f)) * light_radian;
 		lightPos.z = sin(glm::radians(light_degree + 90.0f)) * light_radian;
 
 		light_degree += 1.0f;
 		if (light_degree >= 360.0f) light_degree = 0.0f;
-	}
+	}*/
 
 	if (player_anime) {
 		switch (walk_num) {
@@ -362,8 +371,7 @@ void Keyboard(unsigned char key, int x, int y)
 		break;
 
 	case 'r': case 'R':
-		if (light_rotate) light_rotate = false;
-		else light_rotate = true;
+
 		break;
 
 	case 'q': case 'Q':

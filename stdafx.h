@@ -22,10 +22,13 @@ struct POS {
 };
 
 
-struct Material {
+struct Light {
 	glm::vec3 ambient;
 	glm::vec3 diffuse;
 	glm::vec3 specular;
+	float constant;
+	float linear;
+	float quadratic;
 	float shininess;
 };
 
@@ -37,7 +40,6 @@ void InitBuffer();
 void InsertRectanglePos();
 void InsertPlayerObj();
 void InsertWeaponObj();
-void InitLight();
 void TimerFunction(int value);
 void Mouse(int button, int state, int x, int y);
 void Motion(int x, int y);
@@ -50,7 +52,7 @@ void DrawWeapon(glm::mat4 TR, unsigned int modelLocation);
 
 void SetCamera();
 void SetProjection();
-void SetMaterial(Material m);
+void SetLight(Light);
 void InsertTexture(int textures_num, const char* path);
 void InitTexture();
 

@@ -54,9 +54,10 @@ glm::vec3 pointLightPositions[] = {
 	glm::vec3(0.0f,  0.0f, -3.0f)
 };
 
-
+// camera basic pos = 0, 8, 5
 POS cameraPos = { 0.0f, 8.0f, 5.0f };
-POS lightPos = { 0.0f, 3.0f, 0.0f };
+// multiple lights => doesnt need lightPos
+// POS lightPos = { 0.0f, 3.0f, 0.0f };
 
 Player p;
 
@@ -191,7 +192,6 @@ void Display()
 	glutSwapBuffers();
 }
 
-
 void SetLight() {
 	glUseProgram(s_program[0]);
 
@@ -199,7 +199,7 @@ void SetLight() {
 	glUniform1i(glGetUniformLocation(s_program[0], "material.specular"), 1);
 	glUniform1f(glGetUniformLocation(s_program[0], "material.shininess"), 32.0f);
 
-	glUniform3f(glGetUniformLocation(s_program[0], "dirLight.direction"), -0.2f, -1.0f, -0.3f);
+	glUniform3f(glGetUniformLocation(s_program[0], "dirLight.direction"), -1.0f, -1.0f, -0.3f);
 	glUniform3f(glGetUniformLocation(s_program[0], "dirLight.ambient"), 0.05f, 0.05f, 0.05f);
 	glUniform3f(glGetUniformLocation(s_program[0], "dirLight.diffuse"), 0.4f, 0.4f, 0.4f);
 	glUniform3f(glGetUniformLocation(s_program[0], "dirLight.specular"), 0.5f, 0.5f, 0.5f);
@@ -270,26 +270,43 @@ void DrawPlayer(glm::mat4 TR, unsigned int modelLocation) {
 }
 
 void DrawWeapon(glm::mat4 TR, unsigned int modelLocation) {
+
+	/* ---- player rotate point = {0.0, 0.0, -0.05f} ----*/
+	/* ---- player rotate point = {0.0, 0.0, -0.05f} ----*/
+	/* ---- player rotate point = {0.0, 0.0, -0.05f} ----*/
+	float ar_scale = 0.005;
 	glUseProgram(s_program[0]);
 
 	// handgun
 	glBindVertexArray(VAO_weapon[0]);
 	glBindTexture(GL_TEXTURE_2D, textures[2]);
 
-	TR = glm::translate(TR, glm::vec3(0.0, 0.4, 0.5f));
-	TR = glm::scale(TR, glm::vec3(test_scale_value, test_scale_value, test_scale_value));
+	TR = glm::translate(TR, glm::vec3(2.0, 0.4, 0.5f));
+	TR = glm::scale(TR, glm::vec3(ar_scale, ar_scale, ar_scale));
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
-	glDrawArrays(GL_TRIANGLES, 0, handgun_vertex_count);
-
+	//glDrawArrays(GL_TRIANGLES, 0, handgun_vertex_count);
 	
-	TR = glm::mat4(1.0f);
+	TR = glm::mat4(1.0f); // -- init TR
+
+	// assault rifle
+	glBindVertexArray(VAO_weapon[2]);
+	glBindTexture(GL_TEXTURE_2D, textures[2]);
+
+	TR = glm::translate(TR, glm::vec3(0.0, 0.0, -0.05));
+	TR = glm::rotate(TR, p.face_dir_radian + glm::radians(270.0f), glm::vec3(0.0, 1.0, 0.0));
+	TR = glm::translate(TR, glm::vec3(0.0, 0.0, 0.05));
+	
+	TR = glm::translate(TR, glm::vec3(0.2, 0.24, 0.0));
+	TR = glm::scale(TR, glm::vec3(ar_scale, ar_scale, ar_scale));
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
+	glDrawArrays(GL_TRIANGLES, 0, assault_rifle_vertex_count);
 
 
 	// chainsaw
-	glBindVertexArray(VAO_weapon[6]);
+	glBindVertexArray(VAO_weapon[5]);
 	glBindTexture(GL_TEXTURE_2D, textures[3]);
-
-	TR = glm::scale(TR, glm::vec3(test_scale_value * 4, test_scale_value * 4, test_scale_value * 4));
+	TR = glm::translate(TR, glm::vec3(-2.0, 0.4, 0.5f));
+	TR = glm::scale(TR, glm::vec3(test_scale_value, test_scale_value, test_scale_value));
 
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
 	glDrawArrays(GL_TRIANGLES, 0, chainsaw_vertex_count);
@@ -640,43 +657,12 @@ void InsertWeaponObjSimple(int num, objRead o) {
 }
 
 void InsertWeaponObj() {
-	// handgun
-	//glBindVertexArray(VAO_weapon[0]);
-
-	//glBindBuffer(GL_ARRAY_BUFFER, VBO_weapon_position[0]);
-	//glBufferData(GL_ARRAY_BUFFER, objReader_WEAPON_handgun.outvertex.size() * sizeof(glm::vec3), &objReader_WEAPON_handgun.outvertex[0], GL_STATIC_DRAW);
-	//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-	//glEnableVertexAttribArray(0);
-
-	//glBindBuffer(GL_ARRAY_BUFFER, VBO_weapon_normal[0]);
-	//glBufferData(GL_ARRAY_BUFFER, objReader_WEAPON_handgun.outnormal.size() * sizeof(glm::vec3), &objReader_WEAPON_handgun.outnormal[0], GL_STATIC_DRAW);
-	//glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-	//glEnableVertexAttribArray(1);
-
-	//glBindBuffer(GL_ARRAY_BUFFER, VBO_weapon_texture[0]);
-	//glBufferData(GL_ARRAY_BUFFER, objReader_WEAPON_handgun.outuv.size() * sizeof(glm::vec2), &objReader_WEAPON_handgun.outuv[0], GL_STATIC_DRAW);
-	//glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
-	//glEnableVertexAttribArray(2);
 	InsertWeaponObjSimple(0, objReader_WEAPON_handgun);
-
-	// chainsaw
-	/*glBindVertexArray(VAO_weapon[6]);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO_weapon_position[6]);
-	glBufferData(GL_ARRAY_BUFFER, objReader_WEAPON_chainsaw.outvertex.size() * sizeof(glm::vec3), &objReader_WEAPON_chainsaw.outvertex[0], GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-	glEnableVertexAttribArray(0);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO_weapon_normal[6]);
-	glBufferData(GL_ARRAY_BUFFER, objReader_WEAPON_chainsaw.outnormal.size() * sizeof(glm::vec3), &objReader_WEAPON_chainsaw.outnormal[0], GL_STATIC_DRAW);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-	glEnableVertexAttribArray(1);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO_weapon_texture[6]);
-	glBufferData(GL_ARRAY_BUFFER, objReader_WEAPON_chainsaw.outuv.size() * sizeof(glm::vec2), &objReader_WEAPON_chainsaw.outuv[0], GL_STATIC_DRAW);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
-	glEnableVertexAttribArray(2);*/
-	InsertWeaponObjSimple(6, objReader_WEAPON_chainsaw);
+	InsertWeaponObjSimple(1, objReader_WEAPON_smg);
+	InsertWeaponObjSimple(2, objReader_WEAPON_assault_rifle);
+	InsertWeaponObjSimple(3, objReader_WEAPON_sniper_rifle);
+	InsertWeaponObjSimple(4, objReader_WEAPON_handgun);
+	InsertWeaponObjSimple(5, objReader_WEAPON_chainsaw);
 }
 
 void con_D_to_Ogl(int x, int y, float* ox, float* oy) {

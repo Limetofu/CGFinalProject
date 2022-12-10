@@ -229,6 +229,7 @@ void SetLight() {
 	glUniform1f(glGetUniformLocation(s_program[0], "pointLights[2].linear"), 0.09f);
 	glUniform1f(glGetUniformLocation(s_program[0], "pointLights[2].quadratic"), 0.032f);
 
+	// spotLight direction에 마우스 방향 적용  (( -> 270.0f 회전 필요.
 	glm::mat4 player_radian_temp = glm::mat4(1.0f);
 	player_radian_temp = glm::rotate(player_radian_temp, p.face_dir_radian + glm::radians(270.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::vec4 dir_result = player_radian_temp * glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
@@ -243,8 +244,8 @@ void SetLight() {
 	glUniform1f(glGetUniformLocation(s_program[0], "spotLight.constant"), 1.0f);
 	glUniform1f(glGetUniformLocation(s_program[0], "spotLight.linear"), 0.09f);
 	glUniform1f(glGetUniformLocation(s_program[0], "spotLight.quadratic"), 0.032f);
-	glUniform1f(glGetUniformLocation(s_program[0], "spotLight.cutOff"), glm::cos(glm::radians(15.0f)));
-	glUniform1f(glGetUniformLocation(s_program[0], "spotLight.outerCutOff"), glm::cos(glm::radians(18.0f)));
+	glUniform1f(glGetUniformLocation(s_program[0], "spotLight.cutOff"), glm::cos(glm::radians(27.0f)));
+	glUniform1f(glGetUniformLocation(s_program[0], "spotLight.outerCutOff"), glm::cos(glm::radians(32.0f)));
 
 }
 

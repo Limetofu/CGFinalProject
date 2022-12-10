@@ -54,7 +54,7 @@ Material DesertMaterial = {
 	{ 32.0f }
 };
 
-POS cameraPos = { 0.0f, 2.0f, 5.0f };
+POS cameraPos = { 0.0f, 8.0f, 5.0f };
 POS lightPos = { 0.0f, 0.0f, 2.0f };
 
 GLfloat light_radian = 3.0f;
@@ -86,7 +86,7 @@ objRead objReader_WEAPON_assault_rifle;
 objRead objReader_WEAPON_sniper_rifle;
 objRead objReader_WEAPON_shotgun;
 objRead objReader_WEAPON_flame_thrower;
-objRead objReader_WEAPON_saw;
+objRead objReader_WEAPON_chainsaw;
 
 GLint handgun_vertex_count =		objReader_WEAPON_handgun.loadObj_normalize_center("models/handgun.obj");
 GLint smg_vertex_count =			objReader_WEAPON_smg.loadObj_normalize_center("models/smg.obj");
@@ -94,7 +94,7 @@ GLint assault_rifle_vertex_count =	objReader_WEAPON_assault_rifle.loadObj_normal
 GLint sniper_rifle_vertex_count =	objReader_WEAPON_sniper_rifle.loadObj_normalize_center("models/sniper_rifle.obj");
 GLint shotgun_vertex_count =		objReader_WEAPON_shotgun.loadObj_normalize_center("models/shotgun.obj");
 //GLint flame_thrower_vertex_count =	objReader_WEAPON_flame_thrower.loadObj_normalize_center("models/flame_thrower.obj");
-//GLint saw_vertex_count =			objReader_WEAPON_shotgun.loadObj_normalize_center("models/saw.obj");
+GLint chainsaw_vertex_count =			objReader_WEAPON_chainsaw.loadObj_normalize_center("models/chainsaw.obj");
 
 int player_anime = false;
 
@@ -228,10 +228,23 @@ void DrawWeapon(glm::mat4 TR, unsigned int modelLocation) {
 
 	TR = glm::translate(TR, glm::vec3(0.0, 0.1, 0.5f));
 	TR = glm::scale(TR, glm::vec3(test_scale_value, test_scale_value, test_scale_value));
-
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
-
 	glDrawArrays(GL_TRIANGLES, 0, handgun_vertex_count);
+
+	
+	TR = glm::mat4(1.0f);
+
+
+	// chainsaw
+	glBindVertexArray(VAO_weapon[6]);
+	glBindTexture(GL_TEXTURE_2D, textures[2]);
+
+	TR = glm::translate(TR, glm::vec3(0.0, 0.1, 0.5f));
+	TR = glm::scale(TR, glm::vec3(test_scale_value, test_scale_value, test_scale_value));
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
+	glDrawArrays(GL_TRIANGLES, 0, chainsaw_vertex_count);
+
+
 }
 
 void DrawFloor(glm::mat4 TR, unsigned int modelLocation) {
@@ -599,6 +612,25 @@ void InsertWeaponObj() {
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO_weapon_texture[0]);
 	glBufferData(GL_ARRAY_BUFFER, objReader_WEAPON_handgun.outuv.size() * sizeof(glm::vec2), &objReader_WEAPON_handgun.outuv[0], GL_STATIC_DRAW);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+	glEnableVertexAttribArray(2);
+
+
+	// chainsaw
+	glBindVertexArray(VAO_weapon[6]);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_weapon_position[6]);
+	glBufferData(GL_ARRAY_BUFFER, objReader_WEAPON_chainsaw.outvertex.size() * sizeof(glm::vec3), &objReader_WEAPON_chainsaw.outvertex[0], GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_weapon_normal[6]);
+	glBufferData(GL_ARRAY_BUFFER, objReader_WEAPON_chainsaw.outnormal.size() * sizeof(glm::vec3), &objReader_WEAPON_chainsaw.outnormal[0], GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_weapon_texture[6]);
+	glBufferData(GL_ARRAY_BUFFER, objReader_WEAPON_chainsaw.outuv.size() * sizeof(glm::vec2), &objReader_WEAPON_chainsaw.outuv[0], GL_STATIC_DRAW);
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
 	glEnableVertexAttribArray(2);
 }

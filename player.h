@@ -3,7 +3,12 @@
 
 class Player {
 public:
-	char dir; // W, A, S, D
+	int dir[4]; // W, A, S, D
+	float face_dir_radian;
+
+	float x_move;
+	float y_move;
+
 	int max_hp;
 	int hp;
 	float hp_rezen_speed;
@@ -14,8 +19,15 @@ public:
 	const char* weapon_holding;
 	int weapon_have[7] = { 0, };
 
+	int obj_num;
+	int walk_num;
+
 	void init() {
-		dir = 'x';
+		for (int i = 0; i < 4; i++) dir[i] = false;
+
+		x_move = 0.0f;
+		y_move = 0.0f;
+
 		max_hp = 15;
 		hp = 15;
 		hp_rezen_speed = 1.0f;
@@ -28,5 +40,8 @@ public:
 		for (int i = 1; i < 7; i++) {
 			weapon_have[i] = 0;
 		}
+
+		obj_num = 4;
+		walk_num = 0;
 	}
 };

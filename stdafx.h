@@ -21,17 +21,6 @@ struct POS {
 	GLfloat z;
 };
 
-
-struct Light {
-	glm::vec3 ambient;
-	glm::vec3 diffuse;
-	glm::vec3 specular;
-	float constant;
-	float linear;
-	float quadratic;
-	float shininess;
-};
-
 void Display();
 void Reshape(int w, int h);
 void Keyboard(unsigned char key, int x, int y);
@@ -52,7 +41,6 @@ void DrawWeapon(glm::mat4 TR, unsigned int modelLocation);
 
 void SetCamera();
 void SetProjection();
-void SetLight(Light);
+void SetLight();
 void InsertTexture(int textures_num, const char* path);
 void InitTexture();
-

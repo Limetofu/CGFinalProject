@@ -51,5 +51,6 @@ void DrawWeapon(glm::mat4 TR, unsigned int modelLocation);
 void SetCamera();
 void SetProjection();
 void SetMaterial(Material m);
+void InsertTexture(int textures_num, const char* path);
 void InitTexture();
 

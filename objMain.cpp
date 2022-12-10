@@ -74,10 +74,10 @@ objRead objReader_right_full;
 objRead objReader_left_full;
 objRead objReader_idle;
 
-GLint Object_LH = objReader_left_half.loadObj_normalize_center("models/soldier_after.obj");
-GLint Object_RH = objReader_right_half.loadObj_normalize_center("models/soldier_before.obj");
-GLint Object_RF = objReader_right_full.loadObj_normalize_center("models/soldier_2.obj");
-GLint Object_LF = objReader_left_full.loadObj_normalize_center("models/soldier_3.obj");
+GLint Object_LH =	objReader_left_half.loadObj_normalize_center("models/soldier_after.obj");
+GLint Object_RH =	objReader_right_half.loadObj_normalize_center("models/soldier_before.obj");
+GLint Object_RF =	objReader_right_full.loadObj_normalize_center("models/soldier_2.obj");
+GLint Object_LF =	objReader_left_full.loadObj_normalize_center("models/soldier_3.obj");
 GLint Object_idle = objReader_idle.loadObj_normalize_center("models/soldier_idle.obj");
 
 objRead objReader_WEAPON_handgun;
@@ -248,36 +248,14 @@ void DrawFloor(glm::mat4 TR, unsigned int modelLocation) {
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 }
 
+
+
 void InitTexture() {
-	BITMAPINFO* bmp;
 	glGenTextures(10, textures); //--- 텍스처 생성
-	glBindTexture(GL_TEXTURE_2D, textures[0]); //--- 텍스처 바인딩
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); //--- 현재 바인딩된 텍스처의 파라미터 설정하기
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	unsigned char* data = LoadDIBitmap("textures/soldier_texture.bmp", &bmp); //--- 텍스처로 사용할 비트맵 이미지 로드하기
-	glTexImage2D(GL_TEXTURE_2D, 0, 3, bmp->bmiHeader.biWidth, bmp->bmiHeader.biHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
-	BITMAPINFO* concrete_bmp;
-	glBindTexture(GL_TEXTURE_2D, textures[1]); //--- 텍스처 바인딩
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	unsigned char* concrete_data = LoadDIBitmap("textures/concrete_texture.bmp", &concrete_bmp);
-	glTexImage2D(GL_TEXTURE_2D, 0, 3, concrete_bmp->bmiHeader.biWidth, concrete_bmp->bmiHeader.biHeight, 
-			     0, GL_RGB, GL_UNSIGNED_BYTE, concrete_data);
-
-	BITMAPINFO* weapon_bmp;
-	glBindTexture(GL_TEXTURE_2D, textures[2]); //--- 텍스처 바인딩
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	unsigned char* weapon_data = LoadDIBitmap("textures/gun_texture.bmp", &weapon_bmp);
-	glTexImage2D(GL_TEXTURE_2D, 0, 3, weapon_bmp->bmiHeader.biWidth, weapon_bmp->bmiHeader.biHeight,
-		0, GL_RGB, GL_UNSIGNED_BYTE, weapon_data);
+	InsertTexture(0, "textures/soldier_texture.bmp");
+	InsertTexture(1, "textures/concrete_texture.bmp");
+	InsertTexture(2, "textures/gun_texture.bmp");
 }
 
 void InitLight() {
@@ -417,8 +395,6 @@ void KeyboardUp(unsigned char key, int x, int y) {
 	}
 	glutPostRedisplay();
 }
-
-
 
 int beforeX = 0, beforeY = 0;
 
@@ -646,4 +622,15 @@ GLfloat mouse_radian(double x1, double y1, double x2, double y2) {
 	GLfloat mouse_for_calculate_y = y2 - y1;
 	GLfloat radian = atan2(double(mouse_for_calculate_x), double(mouse_for_calculate_y));
 	return radian;
+}
+
+void InsertTexture(int textures_num, const char* path) {
+	BITMAPINFO* bmp;
+	glBindTexture(GL_TEXTURE_2D, textures[textures_num]); //--- 텍스처 바인딩
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); //--- 현재 바인딩된 텍스처의 파라미터 설정하기
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	unsigned char* data = LoadDIBitmap(path, &bmp); //--- 텍스처로 사용할 비트맵 이미지 로드하기
+	glTexImage2D(GL_TEXTURE_2D, 0, 3, bmp->bmiHeader.biWidth, bmp->bmiHeader.biHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 }

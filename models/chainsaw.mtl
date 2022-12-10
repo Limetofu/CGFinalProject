@@ -1,14 +1,30 @@
 # 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
-# File Created: 10.12.2022 20:07:29
+# File Created: 10.12.2022 21:09:15
 
-newmtl model_om_om0047_om004_saw1_png
-	Ns 96.0784
+newmtl chain
+	Ns 10.0000
 	Ni 1.5000
 	d 1.0000
 	Tr 0.0000
 	Tf 1.0000 1.0000 1.0000 
 	illum 2
-	Ka 0.0000 0.0000 0.0000
-	Kd 0.6400 0.6400 0.6400
-	Ks 0.5000 0.5000 0.5000
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
 	Ke 0.0000 0.0000 0.0000
+	map_Ka C:\Users\alfj2\Downloads\PC Computer - Left 4 Dead 2 - Chainsaw\chainsaw\textures\diffuse-chain.png
+	map_Kd C:\Users\alfj2\Downloads\PC Computer - Left 4 Dead 2 - Chainsaw\chainsaw\textures\diffuse-chain.png
+
+newmtl body
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Ka C:\Users\alfj2\Downloads\PC Computer - Left 4 Dead 2 - Chainsaw\chainsaw\textures\diffuse-body.png
+	map_Kd C:\Users\alfj2\Downloads\PC Computer - Left 4 Dead 2 - Chainsaw\chainsaw\textures\diffuse-body.png

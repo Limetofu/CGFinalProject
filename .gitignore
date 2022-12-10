@@ -1,0 +1,11 @@
+# 디버그 폴더
+Debug/
+Release/
+ipch/
+.vs/
+
+# 확장자 무시
+*.suo
+*.ncb
+*.user
+*.sdf

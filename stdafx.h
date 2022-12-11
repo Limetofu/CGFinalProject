@@ -21,6 +21,13 @@ struct POS {
 	GLfloat z;
 };
 
+struct RECTANGLE {
+	float left;
+	float bottom;
+	float right;
+	float top;
+};
+
 void Display();
 void Reshape(int w, int h);
 void Keyboard(unsigned char key, int x, int y);
@@ -29,6 +36,7 @@ void InitBuffer();
 void InsertRectanglePos();
 void InsertPlayerObj();
 void InsertWeaponObj();
+void InsertObjectObj();
 void TimerFunction(int value);
 void Mouse(int button, int state, int x, int y);
 void Motion(int x, int y);

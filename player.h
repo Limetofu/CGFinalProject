@@ -38,7 +38,7 @@ public:
 
 		velocity = 1.0f;
 		reload_speed = 1.0f;
-		weapon_holding = "handgun";
+		weapon_holding = "sr";
 
 		weapon_have[0] = true;
 		for (int i = 1; i < 7; i++) {

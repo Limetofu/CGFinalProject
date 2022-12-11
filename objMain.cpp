@@ -27,6 +27,11 @@ GLuint VBO_weapon_position[7];
 GLuint VBO_weapon_normal[7];
 GLuint VBO_weapon_texture[7];
 
+GLuint VAO_object[5];
+GLuint VBO_object_position[5];
+GLuint VBO_object_normal[5];
+GLuint VBO_object_texture[5];
+
 GLuint textures[10];
 
 bool left_button = 0;
@@ -44,6 +49,7 @@ int print_solid = true;
 const int num_vertices = 3;
 const int num_triangles = 1;
 
+const char* world_time = "night";
 
 glm::vec3 pointLightPositions[] = {
 	glm::vec3(0.7f,  0.2f,  2.0f),
@@ -86,6 +92,11 @@ GLint assault_rifle_vertex_count =	objReader_WEAPON_assault_rifle.loadObj_normal
 GLint sniper_rifle_vertex_count =	objReader_WEAPON_sniper_rifle.loadObj_normalize_center("models/sniper_rifle.obj");
 GLint shotgun_vertex_count =		objReader_WEAPON_shotgun.loadObj_normalize_center("models/shotgun.obj");
 GLint chainsaw_vertex_count =		objReader_WEAPON_chainsaw.loadObj_normalize_center("models/chainsaw.obj");
+
+
+objRead objReader_street_lamp;
+GLint street_lamp_vertex_count = objReader_street_lamp.loadObj_normalize_center("models/street_lamp.obj");
+
 
 int player_anime = false;
 
@@ -150,8 +161,6 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-
-
 void Display()
 {
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -174,7 +183,6 @@ void Display()
 	
 	glutSwapBuffers();
 }
-
 
 void DrawPlayer(glm::mat4 TR, unsigned int modelLocation) {
 
@@ -214,7 +222,11 @@ void DrawHandgun(unsigned int modelLocation) {
 	glBindVertexArray(VAO_weapon[0]);
 	glBindTexture(GL_TEXTURE_2D, textures[2]);
 
-	TR = glm::translate(TR, glm::vec3(2.0, 0.4, 0.5f));
+	TR = glm::translate(TR, glm::vec3(0.0, 0.0, -0.05));
+	TR = glm::rotate(TR, p.face_dir_radian + glm::radians(270.0f), glm::vec3(0.0, 1.0, 0.0));
+	TR = glm::translate(TR, glm::vec3(0.0, 0.0, 0.05));
+
+	TR = glm::translate(TR, glm::vec3(0.2, 0.24, 0.0));
 	TR = glm::scale(TR, glm::vec3(handgun_scale, handgun_scale, handgun_scale));
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
 	glDrawArrays(GL_TRIANGLES, 0, handgun_vertex_count);
@@ -266,7 +278,7 @@ void DrawSniperRifle(unsigned int modelLocation) {
 	TR = glm::translate(TR, glm::vec3(0.2, 0.24, 0.0));
 	TR = glm::scale(TR, glm::vec3(sr_scale, sr_scale, sr_scale));
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
-	glDrawArrays(GL_TRIANGLES, 0, smg_vertex_count);
+	glDrawArrays(GL_TRIANGLES, 0, sniper_rifle_vertex_count);
 }
 
 void DrawShotgun(unsigned int modelLocation) {
@@ -308,13 +320,22 @@ void DrawFloor(glm::mat4 TR, unsigned int modelLocation) {
 	glBindVertexArray(VAO_rectangle);
 	glBindTexture(GL_TEXTURE_2D, textures[1]);
 	
+	TR = glm::mat4(1.0f);
+
 	TR = glm::translate(TR, glm::vec3(-p.x_move, 0.0f, p.y_move));
-
 	TR = glm::translate(TR, glm::vec3(0.0f, -0.5f, 0.0f));
-	TR = glm::scale(TR, glm::vec3(20.0f, 0.01f, 20.0f));
+	TR = glm::scale(TR, glm::vec3(25.0f, 0.01f, 25.0f));
 	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
-
 	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+	TR = glm::mat4(1.0f);
+
+	glBindVertexArray(VAO_object[0]);
+	glBindTexture(GL_TEXTURE_2D, textures[4]);
+	TR = glm::translate(TR, glm::vec3(-p.x_move, -0.5f, p.y_move));
+	TR = glm::scale(TR, glm::vec3(0.01f, 0.01f, 0.01f));
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
+	glDrawArrays(GL_TRIANGLES, 0, street_lamp_vertex_count);
 }
 
 void InitTexture() {
@@ -324,6 +345,8 @@ void InitTexture() {
 	InsertTexture(1, "textures/concrete_texture.bmp");
 	InsertTexture(2, "textures/gun_texture.bmp");
 	InsertTexture(3, "textures/chainsaw_texture.bmp");
+
+	InsertTexture(4, "textures/street_lamp_texture.bmp");
 }
 
 void SetProjection() {
@@ -373,17 +396,16 @@ void TimerFunction(int value) {
 		p.obj_num = 4;
 	}
 
-
-	float player_speed = p.velocity / 150;
+	float player_speed = p.velocity / 100;
 	
 	if (p.xdir == -1) {
 		player_anime = true;
-		p.x_move -= player_speed;
+		p.x_move -= player_speed + 0.001;
 		//cameraTarget.x = p.x_move;
 	}
 	else if (p.xdir == 1) {
 		player_anime = true;
-		p.x_move += player_speed;
+		p.x_move += player_speed + 0.001;
 		//cameraTarget.x = p.x_move;
 	}
 
@@ -437,6 +459,13 @@ void Keyboard(unsigned char key, int x, int y)
 		break;
 	case 'd': case 'D': // right
 		p.xdir = 1;
+		break;
+
+	case 'n':
+		world_time = "night";
+		break;
+	case 'h':
+		world_time = "day";
 		break;
 	}
 	glutPostRedisplay();
@@ -529,6 +558,11 @@ void InitBuffer()
 	glGenVertexArrays(1, &VAO_rectangle);
 	glGenBuffers(1, &VBO_rectangle);
 
+	glGenVertexArrays(5, VAO_object);
+	glGenBuffers(5, VBO_object_position);
+	glGenBuffers(5, VBO_object_normal);
+	glGenBuffers(5, VBO_object_texture);
+
 	glGenVertexArrays(7, VAO_weapon);
 	glGenBuffers(7, VBO_weapon_position);
 	glGenBuffers(7, VBO_weapon_normal);
@@ -539,6 +573,7 @@ void InitBuffer()
 	InsertPlayerObj();
 	InsertRectanglePos();
 	InsertWeaponObj();
+	InsertObjectObj();
 }
 
 void InsertRectanglePos() {
@@ -592,6 +627,24 @@ void InsertWeaponObjSimple(int num, objRead o) {
 	glEnableVertexAttribArray(2);
 }
 
+void InsertObjectObjSimple(int num, objRead o) {
+	glBindVertexArray(VAO_object[num]);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_object_position[num]);
+	glBufferData(GL_ARRAY_BUFFER, o.outvertex.size() * sizeof(glm::vec3), &o.outvertex[0], GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_object_normal[num]);
+	glBufferData(GL_ARRAY_BUFFER, o.outnormal.size() * sizeof(glm::vec3), &o.outnormal[0], GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_object_texture[num]);
+	glBufferData(GL_ARRAY_BUFFER, o.outuv.size() * sizeof(glm::vec2), &o.outuv[0], GL_STATIC_DRAW);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+	glEnableVertexAttribArray(2);
+}
+
 void InsertPlayerObj() {
 	InsertPlayerObjSimple(0, objReader_left_half);
 	InsertPlayerObjSimple(1, objReader_right_half);
@@ -605,8 +658,12 @@ void InsertWeaponObj() {
 	InsertWeaponObjSimple(1, objReader_WEAPON_smg);
 	InsertWeaponObjSimple(2, objReader_WEAPON_assault_rifle);
 	InsertWeaponObjSimple(3, objReader_WEAPON_sniper_rifle);
-	InsertWeaponObjSimple(4, objReader_WEAPON_handgun);
+	InsertWeaponObjSimple(4, objReader_WEAPON_shotgun);
 	InsertWeaponObjSimple(5, objReader_WEAPON_chainsaw);
+}
+
+void InsertObjectObj() {
+	InsertObjectObjSimple(0, objReader_street_lamp);
 }
 
 void con_D_to_Ogl(int x, int y, float* ox, float* oy) {
@@ -648,35 +705,24 @@ void SetLight() {
 	glUniform1i(glGetUniformLocation(s_program[0], "material.specular"), 1);
 	glUniform1f(glGetUniformLocation(s_program[0], "material.shininess"), 32.0f);
 
-	glUniform3f(glGetUniformLocation(s_program[0], "dirLight.direction"), -1.0f, -1.0f, -0.3f);
-	glUniform3f(glGetUniformLocation(s_program[0], "dirLight.ambient"), 0.05f, 0.05f, 0.05f);
+	glUniform3f(glGetUniformLocation(s_program[0], "dirLight.direction"), 0.0f, -1.0f, -0.3f);
+	if (world_time == "day") {
+		glUniform3f(glGetUniformLocation(s_program[0], "dirLight.ambient"), 0.7f, 0.7f, 0.7f);
+	}
+	else {
+		glUniform3f(glGetUniformLocation(s_program[0], "dirLight.ambient"), 0.0f, 0.0f, 0.0f);
+	}
 	glUniform3f(glGetUniformLocation(s_program[0], "dirLight.diffuse"), 0.4f, 0.4f, 0.4f);
 	glUniform3f(glGetUniformLocation(s_program[0], "dirLight.specular"), 0.5f, 0.5f, 0.5f);
 
 	// point light 1
-	glUniform3f(glGetUniformLocation(s_program[0], "pointLights[0].position"), 0.7f, 0.2f, 2.0f);
-	glUniform3f(glGetUniformLocation(s_program[0], "pointLights[0].ambient"), 0.05f, 0.05f, 0.05f);
+	glUniform3f(glGetUniformLocation(s_program[0], "pointLights[0].position"), 100, 100, 100);
+	glUniform3f(glGetUniformLocation(s_program[0], "pointLights[0].ambient"), 0.5f, 0.5f, 0.5f);
 	glUniform3f(glGetUniformLocation(s_program[0], "pointLights[0].diffuse"), 0.8f, 0.8f, 0.8f);
 	glUniform3f(glGetUniformLocation(s_program[0], "pointLights[0].specular"), 1.0f, 1.0f, 1.0f);
 	glUniform1f(glGetUniformLocation(s_program[0], "pointLights[0].constant"), 1.0f);
 	glUniform1f(glGetUniformLocation(s_program[0], "pointLights[0].linear"), 0.09f);
 	glUniform1f(glGetUniformLocation(s_program[0], "pointLights[0].quadratic"), 0.032f);
-	// point light 2
-	glUniform3f(glGetUniformLocation(s_program[0], "pointLights[1].position"), 2.3f, -3.3f, -4.0f);
-	glUniform3f(glGetUniformLocation(s_program[0], "pointLights[1].ambient"), 0.05f, 0.05f, 0.05f);
-	glUniform3f(glGetUniformLocation(s_program[0], "pointLights[1].diffuse"), 0.8f, 0.8f, 0.8f);
-	glUniform3f(glGetUniformLocation(s_program[0], "pointLights[1].specular"), 1.0f, 1.0f, 1.0f);
-	glUniform1f(glGetUniformLocation(s_program[0], "pointLights[1].constant"), 1.0f);
-	glUniform1f(glGetUniformLocation(s_program[0], "pointLights[1].linear"), 0.09f);
-	glUniform1f(glGetUniformLocation(s_program[0], "pointLights[1].quadratic"), 0.032f);
-	// point light 3
-	glUniform3f(glGetUniformLocation(s_program[0], "pointLights[2].position"), -4.0f, 2.0f, -12.0f);
-	glUniform3f(glGetUniformLocation(s_program[0], "pointLights[2].ambient"), 0.05f, 0.05f, 0.05f);
-	glUniform3f(glGetUniformLocation(s_program[0], "pointLights[2].diffuse"), 0.8f, 0.8f, 0.8f);
-	glUniform3f(glGetUniformLocation(s_program[0], "pointLights[2].specular"), 1.0f, 1.0f, 1.0f);
-	glUniform1f(glGetUniformLocation(s_program[0], "pointLights[2].constant"), 1.0f);
-	glUniform1f(glGetUniformLocation(s_program[0], "pointLights[2].linear"), 0.09f);
-	glUniform1f(glGetUniformLocation(s_program[0], "pointLights[2].quadratic"), 0.032f);
 
 	// spotLight direction에 마우스 방향 적용  (( -> 270.0f 회전 필요.
 	glm::mat4 player_radian_temp = glm::mat4(1.0f);
@@ -684,16 +730,32 @@ void SetLight() {
 	glm::vec4 dir_result = player_radian_temp * glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 
 	// spotLight
-	glUniform3f(glGetUniformLocation(s_program[0], "spotLight.position"), 0.0f, -0.4f, -0.05f);
-	glUniform3f(glGetUniformLocation(s_program[0], "spotLight.direction"), dir_result[0], dir_result[1], dir_result[2]); // 점 하나 TR 에서 변환 후 대입
+	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[0].position"), 0.0f, -0.4f, -0.05f);
+	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[0].direction"), dir_result[0], dir_result[1], dir_result[2]); // 점 하나 TR 에서 변환 후 대입
+	if (world_time == "day") {
+		glUniform3f(glGetUniformLocation(s_program[0], "spotLight[0].ambient"), 0.0f, 0.0f, 0.0f);
+	}
+	else {
+		glUniform3f(glGetUniformLocation(s_program[0], "spotLight[0].ambient"), 0.4f, 0.4f, 0.4f);
+	}
+	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[0].diffuse"), 1.0f, 1.0f, 1.0f);
+	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[0].specular"), 1.0f, 1.0f, 1.0f);
+	glUniform1f(glGetUniformLocation(s_program[0], "spotLight[0].constant"), 1.0f);
+	glUniform1f(glGetUniformLocation(s_program[0], "spotLight[0].linear"), 0.09f);
+	glUniform1f(glGetUniformLocation(s_program[0], "spotLight[0].quadratic"), 0.032f);
+	glUniform1f(glGetUniformLocation(s_program[0], "spotLight[0].cutOff"), glm::cos(glm::radians(25.0f)));
+	glUniform1f(glGetUniformLocation(s_program[0], "spotLight[0].outerCutOff"), glm::cos(glm::radians(30.0f)));
 
-	glUniform3f(glGetUniformLocation(s_program[0], "spotLight.ambient"), 0.0f, 0.0f, 0.0f);
-	glUniform3f(glGetUniformLocation(s_program[0], "spotLight.diffuse"), 1.0f, 1.0f, 1.0f);
-	glUniform3f(glGetUniformLocation(s_program[0], "spotLight.specular"), 1.0f, 1.0f, 1.0f);
-	glUniform1f(glGetUniformLocation(s_program[0], "spotLight.constant"), 1.0f);
-	glUniform1f(glGetUniformLocation(s_program[0], "spotLight.linear"), 0.09f);
-	glUniform1f(glGetUniformLocation(s_program[0], "spotLight.quadratic"), 0.032f);
-	glUniform1f(glGetUniformLocation(s_program[0], "spotLight.cutOff"), glm::cos(glm::radians(27.0f)));
-	glUniform1f(glGetUniformLocation(s_program[0], "spotLight.outerCutOff"), glm::cos(glm::radians(32.0f)));
+	// 가로등 불빛
+	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[1].position"), 0.0f - p.x_move, 1.0f, 0.0f + p.y_move);
+	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[1].direction"), 0.0f, -1.0f, 0.0f); // 점 하나 TR 에서 변환 후 대입
 
+	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[1].ambient"), 0.07f, 0.07f, 0.07f);
+	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[1].diffuse"), 1.0f, 1.0f, 1.0f);
+	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[1].specular"), 1.0f, 1.0f, 1.0f);
+	glUniform1f(glGetUniformLocation(s_program[0], "spotLight[1].constant"), 1.0f);
+	glUniform1f(glGetUniformLocation(s_program[0], "spotLight[1].linear"), 0.09f);
+	glUniform1f(glGetUniformLocation(s_program[0], "spotLight[1].quadratic"), 0.032f);
+	glUniform1f(glGetUniformLocation(s_program[0], "spotLight[1].cutOff"), glm::cos(glm::radians(60.0f)));
+	glUniform1f(glGetUniformLocation(s_program[0], "spotLight[1].outerCutOff"), glm::cos(glm::radians(80.0f)));
 }

@@ -44,18 +44,24 @@ void PassiveMotion(int x, int y);
 
 GLfloat mouse_radian(double x1, double y1, double x2, double y2);
 void DrawPlayer(glm::mat4 TR, unsigned int modelLocation);
+void DrawGrassWall(glm::mat4 TR, unsigned int modelLocation);
 void DrawFloor(glm::mat4 TR, unsigned int modelLocation);
 void DrawWeapon(glm::mat4 TR, unsigned int modelLocation);
 
+void DrawBulletLine();
 void DrawHandgun(unsigned int modelLocation);
 void DrawSMG(unsigned int modelLocation);
 void DrawAssaultRifle(unsigned int modelLocation);
 void DrawSniperRifle(unsigned int modelLocation);
 void DrawShotgun(unsigned int modelLocation);
 void DrawChainsaw(unsigned int modelLocation);
+void DrawLine(unsigned int);
 
 void SetCamera();
 void SetProjection();
 void SetLight();
 void InsertTexture(int textures_num, const char* path);
 void InitTexture();
+
+void con_D_to_Ogl(int x, int y, float* ox, float* oy);
+void con_Ogl_to_D(int* x, int* y, float ox, float oy);

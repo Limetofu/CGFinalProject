@@ -25,6 +25,8 @@ public:
 	int walk_num;
 	int walk_count;
 
+	RECTANGLE bb;
+
 	void init() {
 		xdir = 0;
 		ydir = 0;

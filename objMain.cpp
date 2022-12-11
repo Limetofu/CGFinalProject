@@ -1,10 +1,12 @@
-#define _CRT_SECURE_NO_WARNINGS
+Ôªø#define _CRT_SECURE_NO_WARNINGS
 
 #include "shader.h"
 #include "objRead.h"
 #include "player.h"
 #include "texture.h"
 #include "pos.h"
+#include "weapon.h"
+#include "zombie.h"
 
 using namespace std;
 
@@ -14,8 +16,14 @@ GLuint g_window_h = 1000;
 int g_window_middle_x = g_window_w / 2;
 int g_window_middle_y = g_window_h / 2;
 
+glm::mat4 PR = glm::mat4(1.0f);
+glm::mat4 VR = glm::mat4(1.0f);
+
 GLuint VAO_rectangle;
 GLuint VBO_rectangle;
+
+GLuint VAO_line;
+GLuint VBO_line;
 
 GLuint VAO[10];
 GLuint VBO_position[10];
@@ -40,14 +48,14 @@ bool right_button = 0;
 int mouse_xpos = 0;
 int mouse_ypos = 0;
 
-// ¡˜∞¢ / ø¯±Ÿ ≈ıøµ
+// ÏßÅÍ∞Å / ÏõêÍ∑º Ìà¨ÏòÅ
 int show_ortho = false;
 
-// º÷∏ÆµÂ / øÕ¿ÃæÓ ∏µ®
+// ÏÜîÎ¶¨Îìú / ÏôÄÏù¥Ïñ¥ Î™®Îç∏
 int print_solid = true;
+int bullet_line_count = 0;
 
-const int num_vertices = 3;
-const int num_triangles = 1;
+int zombie_count = 0;
 
 const char* world_time = "night";
 
@@ -65,6 +73,15 @@ POS cameraTarget = { 0.0f, 0.0f, 0.0f };
 // POS lightPos = { 0.0f, 3.0f, 0.0f };
 
 Player p;
+
+Handgun handgun;
+SMG smg;
+AssaultRifle ar;
+SniperRifle sr;
+Shotgun shotgun;
+Chainsaw chainsaw;
+
+Bullet b[100];
 
 //--- load obj related variabales
 objRead objReader_left_half;
@@ -130,7 +147,7 @@ int main(int argc, char** argv)
 
 	GLuint vShader[4];
 	GLuint fShader[4];
-	
+
 	vShader[0] = MakeVertexShader("vertex.glsl", 0);
 	fShader[0] = MakeFragmentShader("fragment.glsl", 0);
 
@@ -141,9 +158,23 @@ int main(int argc, char** argv)
 	glLinkProgram(s_program[0]);
 	checkCompileErrors(s_program[0], "PROGRAM");
 
+
+	vShader[1] = MakeVertexShader("line_vertex.glsl", 0);
+	fShader[1] = MakeFragmentShader("line_fragment.glsl", 0);
+
+	s_program[1] = glCreateProgram();
+	glAttachShader(s_program[1], vShader[1]);
+	glAttachShader(s_program[1], fShader[1]);
+	glLinkProgram(s_program[1]);
+	checkCompileErrors(s_program[1], "PROGRAM");
+
+
+
 	InitBuffer();
 	InitTexture();
 	p.init();
+
+	printf("size = %d\n", sizeof(Pos_rectangle) / sizeof(float));
 
 	// callback functions
 	glutDisplayFunc(Display);
@@ -177,9 +208,14 @@ void Display()
 	SetCamera();
 	SetLight();
 
+	//printf("%d\n", int(glm::degrees(p.face_dir_radian)));
+
 	DrawFloor(TR, modelLocation);
+	DrawGrassWall(TR, modelLocation);
 	DrawPlayer(TR, modelLocation);
 	DrawWeapon(TR, modelLocation);
+
+	DrawLine(modelLocation);
 	
 	glutSwapBuffers();
 }
@@ -206,12 +242,13 @@ void DrawPlayer(glm::mat4 TR, unsigned int modelLocation) {
 
 void DrawWeapon(glm::mat4 TR, unsigned int modelLocation) {
 	glUseProgram(s_program[0]);
-	if (p.weapon_holding == "handgun") DrawHandgun(modelLocation);
-	else if (p.weapon_holding == "smg") DrawSMG(modelLocation);
-	else if (p.weapon_holding == "ar") DrawAssaultRifle(modelLocation);
-	else if (p.weapon_holding == "sr") DrawSniperRifle(modelLocation);
-	else if (p.weapon_holding == "shotgun") DrawShotgun(modelLocation);
-	else if (p.weapon_holding == "chainsaw") DrawChainsaw(modelLocation);
+
+	if		(p.weapon_holding == "handgun")		DrawHandgun(modelLocation);
+	else if (p.weapon_holding == "smg")			DrawSMG(modelLocation);
+	else if (p.weapon_holding == "ar")			DrawAssaultRifle(modelLocation);
+	else if (p.weapon_holding == "sr")			DrawSniperRifle(modelLocation);
+	else if (p.weapon_holding == "shotgun")		DrawShotgun(modelLocation);
+	else if (p.weapon_holding == "chainsaw")	DrawChainsaw(modelLocation);
 }
 
 void DrawHandgun(unsigned int modelLocation) {
@@ -330,6 +367,7 @@ void DrawFloor(glm::mat4 TR, unsigned int modelLocation) {
 
 	TR = glm::mat4(1.0f);
 
+	// Í∞ÄÎ°úÎì±
 	glBindVertexArray(VAO_object[0]);
 	glBindTexture(GL_TEXTURE_2D, textures[4]);
 	TR = glm::translate(TR, glm::vec3(-p.x_move, -0.5f, p.y_move));
@@ -338,8 +376,66 @@ void DrawFloor(glm::mat4 TR, unsigned int modelLocation) {
 	glDrawArrays(GL_TRIANGLES, 0, street_lamp_vertex_count);
 }
 
+void DrawGrassWall(glm::mat4 TR, unsigned int modelLocation) {
+	glUseProgram(s_program[0]);
+	glBindVertexArray(VAO_rectangle);
+	glBindTexture(GL_TEXTURE_2D, textures[6]);
+
+	// left, rightÎßå Ï°∞Í∏à Îçî scaleÌï¥ÏÑú, Íº≠ÏßìÏ†ê Îã´ÌûàÍ≤å
+
+	// left
+	TR = glm::mat4(1.0f);
+	TR = glm::translate(TR, glm::vec3(-p.x_move, 0.0f, p.y_move));
+	TR = glm::translate(TR, glm::vec3(-12.5f - 5.0f, 0.0f, 0.0f));
+	TR = glm::scale(TR, glm::vec3(10.0f, 1.0f, 25.0f + 5.0f));
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+	// right
+	TR = glm::mat4(1.0f);
+	TR = glm::translate(TR, glm::vec3(-p.x_move, 0.0f, p.y_move));
+	TR = glm::translate(TR, glm::vec3(12.5f + 5.0f, 0.0f, 0.0f));
+	TR = glm::scale(TR, glm::vec3(10.0f, 1.0f, 25.0f + 5.0f));
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+	// bottom
+	TR = glm::mat4(1.0f);
+	TR = glm::translate(TR, glm::vec3(-p.x_move, 0.0f, p.y_move));
+	TR = glm::translate(TR, glm::vec3(0.0f, 0.0f, -12.5f - 5.0f));
+	TR = glm::scale(TR, glm::vec3(25.0f, 1.0f, 10.0f));
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+	// top
+	TR = glm::mat4(1.0f);
+	TR = glm::translate(TR, glm::vec3(-p.x_move, 0.0f, p.y_move));
+	TR = glm::translate(TR, glm::vec3(0.0f, 0.0f, 12.5f + 5.0f));
+	TR = glm::scale(TR, glm::vec3(25.0f, 1.0f, 10.0f));
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+}
+
+void DrawLine(unsigned int modelLocation) {
+
+	glUseProgram(s_program[1]);
+
+	glUniformMatrix4fv(glGetUniformLocation(s_program[1], "projectionTransform"), 
+		1, GL_FALSE, glm::value_ptr(PR));
+	glUniformMatrix4fv(glGetUniformLocation(s_program[1], "viewTransform"),
+		1, GL_FALSE, glm::value_ptr(VR));
+
+	glm::mat4 TR = glm::mat4(1.0f);
+	TR = glm::translate(TR, glm::vec3(-p.x_move, 0.0f, p.y_move));
+	glUniformMatrix4fv(glGetUniformLocation(s_program[1], "modelTransform"), 
+		1, GL_FALSE, glm::value_ptr(TR));
+
+	glBindVertexArray(VAO_line);
+	for (int i = 0; i < 100; i += 2) glDrawArrays(GL_LINES, i, 2);
+}
+
 void InitTexture() {
-	glGenTextures(10, textures); //--- ≈ÿΩ∫√≥ ª˝º∫
+	glGenTextures(10, textures); //--- ÌÖçÏä§Ï≤ò ÏÉùÏÑ±
 
 	InsertTexture(0, "textures/soldier_texture.bmp");
 	InsertTexture(1, "textures/concrete_texture.bmp");
@@ -347,22 +443,28 @@ void InitTexture() {
 	InsertTexture(3, "textures/chainsaw_texture.bmp");
 
 	InsertTexture(4, "textures/street_lamp_texture.bmp");
+	InsertTexture(5, "textures/white_texture.bmp");
+	InsertTexture(6, "textures/grass_texture.bmp");
 }
 
 void SetProjection() {
-	glm::mat4 PR = glm::mat4(1.0f);
+
 	unsigned int projLocation = glGetUniformLocation(s_program[0], "projectionTransform");
 
-	/* ------------------------------ ø¯±Ÿ ≈ıøµ ------------------------------ */
+	/* ------------------------------ ÏõêÍ∑º Ìà¨ÏòÅ ------------------------------ */
 	PR = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 50.0f);
 	glUniformMatrix4fv(projLocation, 1, GL_FALSE, glm::value_ptr(PR));
-	/* ---------------------------------------------------------------------------- */
+	/* ----------------------------------------------------------------------- */
+
+	//glUseProgram(s_program[1]);
+	unsigned int projLocationLine = glGetUniformLocation(s_program[1], "projectionTransform");
+	glUniformMatrix4fv(projLocationLine, 1, GL_FALSE, glm::value_ptr(PR));
 }
 
 void SetCamera() {
-	glm::mat4 VR = glm::mat4(1.0f);
 
-	glm::vec3 cameraPosVector = glm::vec3(cameraPos.x, cameraPos.y, cameraPos.z); //--- ƒ´∏ﬁ∂Û ¿ßƒ°
+
+	glm::vec3 cameraPosVector = glm::vec3(cameraPos.x, cameraPos.y, cameraPos.z); //--- Ïπ¥Î©îÎùº ÏúÑÏπò
 	glm::vec3 cameraTargetVector = glm::vec3(cameraTarget.x, cameraTarget.y, cameraTarget.z);
 	glm::vec3 cameraDirection = glm::normalize(cameraPosVector - cameraTargetVector);
 	glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -373,6 +475,10 @@ void SetCamera() {
 
 	unsigned int viewLocation = glGetUniformLocation(s_program[0], "viewTransform");
 	glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(VR));
+
+	//glUseProgram(s_program[1]);
+	unsigned int viewLocationLine = glGetUniformLocation(s_program[1], "viewTransform");
+	glUniformMatrix4fv(viewLocationLine, 1, GL_FALSE, glm::value_ptr(VR));
 }
 
 void TimerFunction(int value) {
@@ -401,28 +507,27 @@ void TimerFunction(int value) {
 	if (p.xdir == -1) {
 		player_anime = true;
 		p.x_move -= player_speed + 0.001;
-		//cameraTarget.x = p.x_move;
 	}
 	else if (p.xdir == 1) {
 		player_anime = true;
 		p.x_move += player_speed + 0.001;
-		//cameraTarget.x = p.x_move;
 	}
 
 	if (p.ydir == -1) {
 		player_anime = true;
 		p.y_move -= player_speed;
-		//cameraTarget.z = p.y_move;
 	}
 	else if (p.ydir == 1) {
 		player_anime = true;
 		p.y_move += player_speed;
-		//cameraTarget.z = p.y_move;
 	}
 
 	if (p.xdir == 0 && p.ydir == 0) {
 		player_anime = false;
+	}
 
+	if (left_button) {
+		DrawBulletLine();
 	}
 
 	glutPostRedisplay();
@@ -466,6 +571,9 @@ void Keyboard(unsigned char key, int x, int y)
 		break;
 	case 'h':
 		world_time = "day";
+		break;
+	case 'v':
+		DrawBulletLine();
 		break;
 	}
 	glutPostRedisplay();
@@ -514,12 +622,88 @@ void Mouse(int button, int state, int x, int y) {
 	glutPostRedisplay();
 }
 
+void DrawBulletLine() {
+	float x1, x2;
+	float y1, y2;
+	
+	con_D_to_Ogl(g_window_middle_x, g_window_middle_y, &x1, &y1);
+	con_D_to_Ogl(mouse_xpos, mouse_ypos, &x2, &y2);
+
+	float y_dest = 0.0f, x_dest = 0.0f;
+
+	float f_degree = glm::degrees(p.face_dir_radian);
+
+	if (-180 <= f_degree && f_degree < 0) {
+		y_dest = (y2 - y1) * (20 - x1) / (x2 - x1) + y1;
+		x_dest = (x2 - x1) * (-y_dest - y1) / (y2 - y1) + x1;
+	}
+	else { // if (0 <= f_degree && f_degree <= 180)
+		
+		y_dest = -(y2 - y1) * (20 - x1) / (x2 - x1) + y1;
+		x_dest = (x2 - x1) * (-y_dest - y1) / (y2 - y1) + x1;
+
+		/*for (float i = 0; i < 20; i += 0.05f) {
+
+			y_dest = -(y2 - y1) * (i - x1) / (x2 - x1) + y1 + p.y_move;
+			x_dest = (x2 - x1) * (-y_dest - y1) / (y2 - y1) + x1 + p.x_move;
+
+			for (int j = 0; j < zombie_count; j++) {
+				CollideBulletZombie(x1 + p.x_move, y1 - p.y_move, x_dest, y_dest
+									, );
+			}
+		}*/
+	}
+
+	printf("y : %f, x : %f\n", y_dest, x_dest);
+	printf("face radian : %f\n", glm::degrees(p.face_dir_radian));
+
+	// vertex
+	Pos_line[(bullet_line_count * 12)] = x1 + p.x_move;
+	Pos_line[(bullet_line_count * 12) + 1] = 0.4f;
+	Pos_line[(bullet_line_count * 12) + 2] = y1 - p.y_move;
+
+	// normal
+	Pos_line[(bullet_line_count * 12) + 3] = 0.0f;
+	Pos_line[(bullet_line_count * 12) + 4] = 1.0f;
+	Pos_line[(bullet_line_count * 12) + 5] = 0.0f;
+
+	// vertex
+	Pos_line[(bullet_line_count * 12) + 6] = x_dest + p.x_move;
+	Pos_line[(bullet_line_count * 12) + 7] = 0.5f;
+	Pos_line[(bullet_line_count * 12) + 8] = y_dest - p.y_move;
+
+	// normal
+	Pos_line[(bullet_line_count * 12) + 9] = 0.0f;
+	Pos_line[(bullet_line_count * 12) + 10] = 1.0f;
+	Pos_line[(bullet_line_count * 12) + 11] = 0.0f;
+
+	InsertRectanglePos();
+	if (bullet_line_count == 15) {
+		bullet_line_count = 0;
+	}
+	else {
+		bullet_line_count++;
+	}
+}
+
+void Shoot() {
+	// ÏßÅÏÑ† Í∑∏Î¶¨Í∏∞
+	// ÌòÑÏû¨ ÎßàÏö∞Ïä§ ÏúÑÏπò
+	if (p.weapon_holding == "handgun") {
+		
+	}
+}
+
+void Reload() {
+	
+}
+
 void Motion(int x, int y) {
 
 	mouse_xpos = x;
 	mouse_ypos = y;
 
-	// øﬁ¬  ∏∂øÏΩ∫∞° ¥≠∑»¿ª ∂ß
+	// ÏôºÏ™Ω ÎßàÏö∞Ïä§Í∞Ä ÎàåÎ†∏ÏùÑ Îïå
 	if (left_button == true) {
 
 		int afterX = x - beforeX;
@@ -529,7 +713,7 @@ void Motion(int x, int y) {
 		beforeX = x, beforeY = y;
 	}
 
-	// ø¿∏•¬  ∏∂øÏΩ∫∞° ¥≠∑»¿ª ∂ß
+	// Ïò§Î•∏Ï™Ω ÎßàÏö∞Ïä§Í∞Ä ÎàåÎ†∏ÏùÑ Îïå
 	if (right_button == true) {
 		;
 	}
@@ -558,6 +742,9 @@ void InitBuffer()
 	glGenVertexArrays(1, &VAO_rectangle);
 	glGenBuffers(1, &VBO_rectangle);
 
+	glGenVertexArrays(1, &VAO_line);
+	glGenBuffers(1, &VBO_line);
+
 	glGenVertexArrays(5, VAO_object);
 	glGenBuffers(5, VBO_object_position);
 	glGenBuffers(5, VBO_object_normal);
@@ -568,7 +755,6 @@ void InitBuffer()
 	glGenBuffers(7, VBO_weapon_normal);
 	glGenBuffers(7, VBO_weapon_texture);
 
-	// 2 triangles for quad floor
 	glUseProgram(s_program[0]);
 	InsertPlayerObj();
 	InsertRectanglePos();
@@ -587,6 +773,15 @@ void InsertRectanglePos() {
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
 	glEnableVertexAttribArray(2);
+
+
+	glBindVertexArray(VAO_line);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_line);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Pos_line), Pos_line, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
 }
 
 void InsertPlayerObjSimple(int num, objRead o) {
@@ -689,12 +884,12 @@ GLfloat mouse_radian(double x1, double y1, double x2, double y2) {
 
 void InsertTexture(int textures_num, const char* path) {
 	BITMAPINFO* bmp;
-	glBindTexture(GL_TEXTURE_2D, textures[textures_num]); //--- ≈ÿΩ∫√≥ πŸ¿Œµ˘
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); //--- «ˆ¿Á πŸ¿Œµ˘µ» ≈ÿΩ∫√≥¿« ∆ƒ∂ÛπÃ≈Õ º≥¡§«œ±‚
+	glBindTexture(GL_TEXTURE_2D, textures[textures_num]); //--- ÌÖçÏä§Ï≤ò Î∞îÏù∏Îî©
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); //--- ÌòÑÏû¨ Î∞îÏù∏Îî©Îêú ÌÖçÏä§Ï≤òÏùò ÌååÎùºÎØ∏ÌÑ∞ ÏÑ§Ï†ïÌïòÍ∏∞
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	unsigned char* data = LoadDIBitmap(path, &bmp); //--- ≈ÿΩ∫√≥∑Œ ªÁøÎ«“ ∫Ò∆Æ∏  ¿ÃπÃ¡ˆ ∑ŒµÂ«œ±‚
+	unsigned char* data = LoadDIBitmap(path, &bmp); //--- ÌÖçÏä§Ï≤òÎ°ú ÏÇ¨Ïö©Ìï† ÎπÑÌä∏Îßµ Ïù¥ÎØ∏ÏßÄ Î°úÎìúÌïòÍ∏∞
 	glTexImage2D(GL_TEXTURE_2D, 0, 3, bmp->bmiHeader.biWidth, bmp->bmiHeader.biHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 }
 
@@ -724,14 +919,14 @@ void SetLight() {
 	glUniform1f(glGetUniformLocation(s_program[0], "pointLights[0].linear"), 0.09f);
 	glUniform1f(glGetUniformLocation(s_program[0], "pointLights[0].quadratic"), 0.032f);
 
-	// spotLight directionø° ∏∂øÏΩ∫ πÊ«‚ ¿˚øÎ  (( -> 270.0f »∏¿¸ « ø‰.
+	// spotLight directionÏóê ÎßàÏö∞Ïä§ Î∞©Ìñ• Ï†ÅÏö©  (( -> 270.0f ÌöåÏ†Ñ ÌïÑÏöî.
 	glm::mat4 player_radian_temp = glm::mat4(1.0f);
 	player_radian_temp = glm::rotate(player_radian_temp, p.face_dir_radian + glm::radians(270.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::vec4 dir_result = player_radian_temp * glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 
 	// spotLight
 	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[0].position"), 0.0f, -0.4f, -0.05f);
-	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[0].direction"), dir_result[0], dir_result[1], dir_result[2]); // ¡° «œ≥™ TR ø°º≠ ∫Ø»Ø »ƒ ¥Î¿‘
+	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[0].direction"), dir_result[0], dir_result[1], dir_result[2]); // Ï†ê ÌïòÎÇò TR ÏóêÏÑú Î≥ÄÌôò ÌõÑ ÎåÄÏûÖ
 	if (world_time == "day") {
 		glUniform3f(glGetUniformLocation(s_program[0], "spotLight[0].ambient"), 0.0f, 0.0f, 0.0f);
 	}
@@ -746,9 +941,9 @@ void SetLight() {
 	glUniform1f(glGetUniformLocation(s_program[0], "spotLight[0].cutOff"), glm::cos(glm::radians(25.0f)));
 	glUniform1f(glGetUniformLocation(s_program[0], "spotLight[0].outerCutOff"), glm::cos(glm::radians(30.0f)));
 
-	// ∞°∑ŒµÓ ∫“∫˚
+	// Í∞ÄÎ°úÎì± Î∂àÎπõ
 	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[1].position"), 0.0f - p.x_move, 1.0f, 0.0f + p.y_move);
-	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[1].direction"), 0.0f, -1.0f, 0.0f); // ¡° «œ≥™ TR ø°º≠ ∫Ø»Ø »ƒ ¥Î¿‘
+	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[1].direction"), 0.0f, -1.0f, 0.0f); // Ï†ê ÌïòÎÇò TR ÏóêÏÑú Î≥ÄÌôò ÌõÑ ÎåÄÏûÖ
 
 	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[1].ambient"), 0.07f, 0.07f, 0.07f);
 	glUniform3f(glGetUniformLocation(s_program[0], "spotLight[1].diffuse"), 1.0f, 1.0f, 1.0f);

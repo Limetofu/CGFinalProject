@@ -3,7 +3,9 @@
 
 class Player {
 public:
-	int dir[4]; // W, A, S, D
+	int xdir;
+	int ydir;
+
 	float face_dir_radian;
 
 	float x_move;
@@ -21,9 +23,11 @@ public:
 
 	int obj_num;
 	int walk_num;
+	int walk_count;
 
 	void init() {
-		for (int i = 0; i < 4; i++) dir[i] = false;
+		xdir = 0;
+		ydir = 0;
 
 		x_move = 0.0f;
 		y_move = 0.0f;
@@ -43,5 +47,6 @@ public:
 
 		obj_num = 4;
 		walk_num = 0;
+		walk_count = 0;
 	}
 };

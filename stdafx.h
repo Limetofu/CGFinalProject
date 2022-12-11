@@ -39,6 +39,13 @@ void DrawPlayer(glm::mat4 TR, unsigned int modelLocation);
 void DrawFloor(glm::mat4 TR, unsigned int modelLocation);
 void DrawWeapon(glm::mat4 TR, unsigned int modelLocation);
 
+void DrawHandgun(unsigned int modelLocation);
+void DrawSMG(unsigned int modelLocation);
+void DrawAssaultRifle(unsigned int modelLocation);
+void DrawSniperRifle(unsigned int modelLocation);
+void DrawShotgun(unsigned int modelLocation);
+void DrawChainsaw(unsigned int modelLocation);
+
 void SetCamera();
 void SetProjection();
 void SetLight();

@@ -8,7 +8,7 @@
 #include "weapon.h"
 #include "zombie.h"
 
-#define ZOMBIE_COUNT 100
+#define ZOMBIE_COUNT 300
 
 using namespace std;
 
@@ -93,7 +93,8 @@ Bullet b[100];
 
 Weapon w;
 
-Zombie z[100];
+Zombie z[ZOMBIE_COUNT];
+int showed_zombie_count = 0;
 
 //--- load obj related variabales
 objRead objReader_left_half;
@@ -113,14 +114,12 @@ objRead objReader_WEAPON_smg;
 objRead objReader_WEAPON_assault_rifle;
 objRead objReader_WEAPON_sniper_rifle;
 objRead objReader_WEAPON_shotgun;
-objRead objReader_WEAPON_chainsaw;
 
 GLint handgun_vertex_count =		objReader_WEAPON_handgun.loadObj_normalize_center("models/handgun.obj");
 GLint smg_vertex_count =			objReader_WEAPON_smg.loadObj_normalize_center("models/smg.obj");
 GLint assault_rifle_vertex_count =	objReader_WEAPON_assault_rifle.loadObj_normalize_center("models/assault_rifle.obj");
 GLint sniper_rifle_vertex_count =	objReader_WEAPON_sniper_rifle.loadObj_normalize_center("models/sniper_rifle.obj");
 GLint shotgun_vertex_count =		objReader_WEAPON_shotgun.loadObj_normalize_center("models/shotgun.obj");
-GLint chainsaw_vertex_count =		objReader_WEAPON_chainsaw.loadObj_normalize_center("models/chainsaw.obj");
 
 objRead objReader_zombie_idle; // stand
 objRead objReader_zombie_left_half; // 3
@@ -192,15 +191,22 @@ int main(int argc, char** argv)
 	glLinkProgram(s_program[1]);
 	checkCompileErrors(s_program[1], "PROGRAM");
 
-
-
 	InitBuffer();
 	InitTexture();
 	p.init();
 	for (int i = 0; i < 100; i++) {
 		b[i].init();
+		
 	}
+	for (int i = 0; i < ZOMBIE_COUNT; i++) {
+		z[i].init();
+	}
+	w.use("Handgun");
+	shoot_cooltime_limit = w.Handgun.shooting_count_limit;
 
+	for (int i = 0; i < ZOMBIE_COUNT; i++) {
+		z[i].spawn(time(NULL) + i * 33 / 12, i);
+	}
 
 	// callback functions
 	glutDisplayFunc(Display);
@@ -236,7 +242,7 @@ void Display()
 
 	//printf("%d\n", int(glm::degrees(p.face_dir_radian)));
 
-	ChangeWeapon(1);
+
 
 	DrawFloor(TR, modelLocation);
 	DrawGrassWall(TR, modelLocation);
@@ -244,6 +250,7 @@ void Display()
 	DrawWeapon(TR, modelLocation);
 	DrawZombie(TR, modelLocation);
 	DrawLine(modelLocation);
+	DrawUI();
 	
 	glutSwapBuffers();
 }
@@ -295,7 +302,6 @@ void DrawWeapon(glm::mat4 TR, unsigned int modelLocation) {
 	else if (w.type == "AssualtRifle")	DrawAssaultRifle(modelLocation);
 	else if (w.type == "SniperRifle")	DrawSniperRifle(modelLocation);
 	else if (w.type == "Shotgun")		DrawShotgun(modelLocation);
-	// else if (w.type == "chainsaw")	DrawChainsaw(modelLocation);
 }
 
 void DrawHandgun(unsigned int modelLocation) {
@@ -317,7 +323,7 @@ void DrawHandgun(unsigned int modelLocation) {
 }
 
 void DrawSMG(unsigned int modelLocation) {
-	float smg_scale = 0.005;
+	float smg_scale = 0.0055;
 	glm::mat4 TR = glm::mat4(1.0f); // -- init TR
 
 	glBindVertexArray(VAO_weapon[1]);
@@ -381,23 +387,6 @@ void DrawShotgun(unsigned int modelLocation) {
 	glDrawArrays(GL_TRIANGLES, 0, shotgun_vertex_count);
 }
 
-void DrawChainsaw(unsigned int modelLocation) {
-	float chainsaw_scale = 0.005;
-	glm::mat4 TR = glm::mat4(1.0f); // -- init TR	
-	
-	glBindVertexArray(VAO_weapon[5]);
-	glBindTexture(GL_TEXTURE_2D, textures[3]);
-	TR = glm::translate(TR, glm::vec3(0.0, 0.0, -0.05));
-	TR = glm::rotate(TR, p.face_dir_radian + glm::radians(270.0f), glm::vec3(0.0, 1.0, 0.0));
-	TR = glm::translate(TR, glm::vec3(0.0, 0.0, 0.05));
-
-	TR = glm::translate(TR, glm::vec3(0.2, 0.24, 0.0));
-	TR = glm::scale(TR, glm::vec3(chainsaw_scale, chainsaw_scale, chainsaw_scale));
-
-	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
-	glDrawArrays(GL_TRIANGLES, 0, chainsaw_vertex_count);
-}
-
 void DrawFloor(glm::mat4 TR, unsigned int modelLocation) {
 	
 	glUseProgram(s_program[0]);
@@ -428,8 +417,24 @@ void DrawGrassWall(glm::mat4 TR, unsigned int modelLocation) {
 	glBindVertexArray(VAO_rectangle);
 	glBindTexture(GL_TEXTURE_2D, textures[6]);
 
-	// left, right만 조금 더 scale해서, 꼭짓점 닫히게
+	//
+	//for (int i = 0; i < ZOMBIE_COUNT; i++) {
+	//	TR = glm::mat4(1.0f);
+	//	TR = glm::translate(TR, glm::vec3(z[i].xpos, 0.0f, -z[i].ypos));
+	//	TR = glm::translate(TR, glm::vec3(-p.x_move, 0.0f, p.y_move));
+	//	TR = glm::scale(TR, glm::vec3(0.5, 0.5, 0.5));
+	//	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
+	//	glDrawArrays(GL_TRIANGLES, 30, 6);
+	//}
+	//for (int i = 0; i < 100; i++) {
+	//	TR = glm::mat4(1.0f);
+	//	TR = glm::translate(TR, glm::vec3(b[i].xpos, 0.0f, b[i].ypos));
+	//	TR = glm::scale(TR, glm::vec3(0.3, 0.3, 0.3));
+	//	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
+	//	glDrawArrays(GL_TRIANGLES, 30, 6);
+	//}
 
+	// left, right만 조금 더 scale해서, 꼭짓점 닫히게
 	// left
 	TR = glm::mat4(1.0f);
 	TR = glm::translate(TR, glm::vec3(-p.x_move, 0.0f, p.y_move));
@@ -475,7 +480,7 @@ void DrawLine(unsigned int modelLocation) {
 	TR = glm::translate(TR, glm::vec3(-p.x_move, 0.0f, p.y_move));
 	glUniformMatrix4fv(glGetUniformLocation(s_program[1], "modelTransform"), 
 		1, GL_FALSE, glm::value_ptr(TR));
-	glUniform1i(glGetUniformLocation(s_program[1], "red"), 0);
+	glUniform3f(glGetUniformLocation(s_program[1], "color"), 1.0, 1.0, 1.0);
 
 	glBindVertexArray(VAO_line);
 	for (int i = 0; i < 100; i++) {
@@ -483,8 +488,7 @@ void DrawLine(unsigned int modelLocation) {
 			glDrawArrays(GL_LINES, i * 2, 2);
 		}
 	}
-
-	glUniform1i(glGetUniformLocation(s_program[1], "red"), 1);
+	glUniform3f(glGetUniformLocation(s_program[1], "color"), 1.0, 0.0, 0.0);
 	glBindVertexArray(VAO_bullet);
 	for (int i = 0; i < 100; i += 2) {
 		if (b[i].show) {
@@ -497,6 +501,40 @@ void DrawLine(unsigned int modelLocation) {
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
 	}
+}
+
+void DrawUI() {
+	glUseProgram(s_program[1]);
+
+	glBindVertexArray(VAO_bullet);
+	glm::mat4 emptyPR = glm::mat4(1.0f);
+	glm::mat4 emptyVR = glm::mat4(1.0f);
+	glUniformMatrix4fv(glGetUniformLocation(s_program[1], "projectionTransform"),
+		1, GL_FALSE, glm::value_ptr(emptyPR));
+	glUniformMatrix4fv(glGetUniformLocation(s_program[1], "viewTransform"),
+		1, GL_FALSE, glm::value_ptr(emptyVR));
+
+	// hp
+	glUniform3f(glGetUniformLocation(s_program[1], "color"), 0.0, 1.0, 0.0);
+	glm::mat4 TR = glm::mat4(1.0f);
+	TR = glm::translate(TR, glm::vec3(-0.7, 0.85, -0.1));
+	TR = glm::scale(TR, glm::vec3(0.4, 0.085, 1.0));
+	glUniformMatrix4fv(glGetUniformLocation(s_program[1], "modelTransform"),
+		1, GL_FALSE, glm::value_ptr(TR));
+	glDrawArrays(GL_TRIANGLES, 24, 6);
+
+	// bullet
+	glUniform3f(glGetUniformLocation(s_program[1], "color"), 1.0, 0.5, 0.0);
+	TR = glm::mat4(1.0f);
+	TR = glm::translate(TR, glm::vec3(-0.7, 0.75, -0.1));
+
+	//float remain_bullet_rate = float(w.holding.bullet_count) / float(w.holding.max_bullet_count);
+	//TR = glm::scale(TR, glm::vec3(0.4 * remain_bullet_rate, 0.085, 1.0));
+
+	TR = glm::scale(TR, glm::vec3(0.4, 0.085, 1.0));
+	glUniformMatrix4fv(glGetUniformLocation(s_program[1], "modelTransform"),
+		1, GL_FALSE, glm::value_ptr(TR));
+	glDrawArrays(GL_TRIANGLES, 24, 6);
 }
 
 void InitTexture() {
@@ -628,6 +666,9 @@ void TimerFunction(int value) {
 		}
 	}
 
+
+
+
 	UpdateBulletLine();
 
 	glutPostRedisplay();
@@ -667,9 +708,8 @@ void Keyboard(unsigned char key, int x, int y)
 		break;
 
 	case 'z': case 'Z':
-		for (int i = 0; i < 100; i++) z[i].spawn(time(NULL) + i * 33 / 12, i);
-		//dz[0].spawn(0, 0);
-		printf("pressed Z\n");
+
+
 		break;
 
 	case 'n':
@@ -703,7 +743,7 @@ void ChangeWeapon(int num) {
 
 	if (can_shoot) {
 		shoot_cooltime = 0;
-
+		printf("pressed num\n");
 		switch (num) {
 		case 1: // handgun
 			w.use("Handgun");
@@ -826,6 +866,8 @@ void DrawBulletLine() {
 				Pos_line[(i * 12) + 11] = 0.0f;
 			}
 
+			w.holding.bullet_count--;
+
 			break;
 		}
 	}
@@ -836,11 +878,13 @@ void UpdateBulletLine() {
 		if (b[i].show) {
 			b[i].move(p.x_move, p.y_move);
 			for (int k = 0; k < ZOMBIE_COUNT; k++) {
-				if (z[k].hurt_bullet_num != i) { // 맞았던 총알이 아닐 때
+				if (z[k].state == "chase") {
 					if (b[i].check_collide(z[k].bb)) {
-						printf("bullet %d, zombie %d col\n", i, k);
 						// k번째 좀비가 충돌. i번째 총알에
 						z[k].knockback(i, w.holding.damage);
+						if (w.type != "SniperRifle") {
+							b[i].remove_bullet();
+						}
 					}
 				}
 			}
@@ -1066,7 +1110,6 @@ void InsertWeaponObj() {
 	InsertWeaponObjSimple(2, objReader_WEAPON_assault_rifle);
 	InsertWeaponObjSimple(3, objReader_WEAPON_sniper_rifle);
 	InsertWeaponObjSimple(4, objReader_WEAPON_shotgun);
-	InsertWeaponObjSimple(5, objReader_WEAPON_chainsaw);
 }
 
 void InsertObjectObj() {

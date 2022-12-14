@@ -26,6 +26,7 @@ public:
 	int knockbacking;
 	int knockback_count;
 
+	int can_spawn;
 	int num;
 
 	RECTANGLE bb;
@@ -41,6 +42,7 @@ public:
 
 		state = "hide";
 		hp = 3;
+		can_spawn = false;
 
 		walk_count = 0;
 		walk_num = 0;
@@ -67,6 +69,7 @@ public:
 		init();
 
 		num = n;
+		can_spawn = false;
 
 		if (rand() % 2) { // x값 13 고정, y값 랜덤
 			if (rand() % 2) spawn_xpos = 13.0f;
@@ -113,10 +116,6 @@ public:
 		knockbacking = true;
 		knockback_count = 5;
 
-		// 총알 번호도 남겨야 함.
-		// 다시 맞으면 안됨!
-		hurt_bullet_num = bullet_num;
-
 		hp -= dmg;
 		if (hp <= 0) {
 			die();
@@ -125,5 +124,6 @@ public:
 
 	void die() {
 		state = "dead";
+		can_spawn = true;
 	}
 };

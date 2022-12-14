@@ -51,6 +51,7 @@ void DrawGrassWall(glm::mat4 TR, unsigned int modelLocation);
 void DrawFloor(glm::mat4 TR, unsigned int modelLocation);
 void DrawWeapon(glm::mat4 TR, unsigned int modelLocation);
 void DrawZombie(glm::mat4 TR, unsigned int modelLocation);
+void DrawUI();
 
 void DrawBulletLine();
 void UpdateBulletLine();
@@ -59,7 +60,6 @@ void DrawSMG(unsigned int modelLocation);
 void DrawAssaultRifle(unsigned int modelLocation);
 void DrawSniperRifle(unsigned int modelLocation);
 void DrawShotgun(unsigned int modelLocation);
-void DrawChainsaw(unsigned int modelLocation);
 void DrawLine(unsigned int);
 
 void SetCamera();

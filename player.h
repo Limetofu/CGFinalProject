@@ -24,6 +24,9 @@ public:
 
 	int money;
 
+	const char* state;
+	int hit_count;
+
 	RECTANGLE bb;
 
 	void init() {
@@ -44,5 +47,26 @@ public:
 		obj_num = 4;
 		walk_num = 0;
 		walk_count = 0;
+
+		state = "idle";
+		hit_count = 0;
+	}
+	
+	void hit() {
+		hp--;
+		state = "hit";
+		hit_count = 10;
+	}
+
+	void update() {
+		if (state == "hit") {
+			if (hit_count <= 0) {
+				hit_count = 0;
+				state = "idle";
+			}
+			else {
+				hit_count--;
+			}
+		}
 	}
 };

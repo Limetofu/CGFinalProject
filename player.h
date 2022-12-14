@@ -18,12 +18,11 @@ public:
 	float velocity;
 	float reload_speed;
 
-	const char* weapon_holding;
-	int weapon_have[7] = { 0, };
-
 	int obj_num;
 	int walk_num;
 	int walk_count;
+
+	int money;
 
 	RECTANGLE bb;
 
@@ -31,8 +30,8 @@ public:
 		xdir = 0;
 		ydir = 0;
 
-		x_move = 0.5f;
-		y_move = -0.5f;
+		x_move = 0.0f;
+		y_move = 0.0f;
 
 		max_hp = 15;
 		hp = 15;
@@ -40,12 +39,7 @@ public:
 
 		velocity = 1.0f;
 		reload_speed = 1.0f;
-		weapon_holding = "sr";
-
-		weapon_have[0] = true;
-		for (int i = 1; i < 7; i++) {
-			weapon_have[i] = 0;
-		}
+		money = 0;
 
 		obj_num = 4;
 		walk_num = 0;

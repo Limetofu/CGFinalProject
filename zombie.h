@@ -21,26 +21,37 @@ public:
 	int walk_num;
 	int walk_count;
 
+	int hurt_bullet_num;
+
+	int knockbacking;
+	int knockback_count;
+
+	int num;
+
 	RECTANGLE bb;
 
 	void init() {
-		xpos = 20.0;
-		ypos = 20.0;
-		spawn_xpos = 20.0;
-		spawn_ypos = 20.0;
+		xpos = 200.0;
+		ypos = 200.0;
+		spawn_xpos = 200.0;
+		spawn_ypos = 200.0;
 
 		degree = 0.0f;
 		r = 0.005f;
 
 		state = "hide";
-		hp = 10;
+		hp = 3;
 
 		walk_count = 0;
 		walk_num = 0;
 		obj_num = 0;
+		knockbacking = false;
+		knockback_count = 0;
+
+		num = -1;
 	}
 
-	void spawn(unsigned int rand_seed) {
+	void spawn(unsigned int rand_seed, int n) {
 		// spawn시 spawn_xpos, ypos 지정.
 		// xpos = spawn_xpos
 
@@ -52,10 +63,10 @@ public:
 		//  3. hide
 		// //      => 아직 나타나지 않은 상태
 
-		// hide -> chase
 		srand(rand_seed);
-
 		init();
+
+		num = n;
 
 		if (rand() % 2) { // x값 13 고정, y값 랜덤
 			if (rand() % 2) spawn_xpos = 13.0f;
@@ -70,22 +81,49 @@ public:
 
 		xpos = spawn_xpos, ypos = spawn_ypos;
 		state = "chase";
-		
 	}
 
 	void update(float p_x, float p_y) {
 		degree = mouse_radian(p_x, p_y, xpos, ypos);
 
-		xpos = spawn_xpos - sin(degree) * r;
-		ypos = spawn_ypos - cos(degree) * r;
+		if (knockbacking) {
+			xpos = spawn_xpos + sin(degree) * r;
+			ypos = spawn_ypos + cos(degree) * r;
+			knockback_count--;
+			if (knockback_count <= 0) {
+				knockback_count = 0;
+				knockbacking = false;
+			}
+		}
+		else {
+			xpos = spawn_xpos - sin(degree) * r;
+			ypos = spawn_ypos - cos(degree) * r;
+		}
 
 		spawn_xpos = xpos;
 		spawn_ypos = ypos;
 
-		bb.left = xpos - 0.5f;
-		bb.right = xpos + 0.5f;
-		bb.bottom = ypos - 0.5f;
-		bb.top = ypos + 0.5f;
+		bb.left = xpos - p_x - 0.5f;
+		bb.right = xpos - p_x + 0.5f;
+		bb.bottom = -ypos + p_y - 0.5f;
+		bb.top = -ypos + p_y + 0.5f;
+	}
+
+	void knockback(int bullet_num, float dmg) {
+		knockbacking = true;
+		knockback_count = 5;
+
+		// 총알 번호도 남겨야 함.
+		// 다시 맞으면 안됨!
+		hurt_bullet_num = bullet_num;
+
+		hp -= dmg;
+		if (hp <= 0) {
+			die();
+		}
+	}
+
+	void die() {
+		state = "dead";
 	}
 };
-

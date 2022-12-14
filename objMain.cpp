@@ -69,7 +69,7 @@ int bullet_line_count = 0;
 
 const char* world_time = "night";
 
-int shoot_cooltime_limit = 100; // handgun = 20
+int shoot_cooltime_limit = 20; // handgun = 20
 int shoot_cooltime = 0;
 bool can_shoot = false;
 
@@ -236,6 +236,8 @@ void Display()
 
 	//printf("%d\n", int(glm::degrees(p.face_dir_radian)));
 
+	ChangeWeapon(1);
+
 	DrawFloor(TR, modelLocation);
 	DrawGrassWall(TR, modelLocation);
 	DrawPlayer(TR, modelLocation);
@@ -275,7 +277,6 @@ void DrawZombie(glm::mat4 TR, unsigned int modelLocation) {
 		if (z[i].state == "chase") {
 			TR = glm::mat4(1.0f);
 			TR = glm::translate(TR, glm::vec3(z[i].xpos - p.x_move, 0.0, -z[i].ypos + p.y_move));
-			TR = glm::translate(TR, glm::vec3(0.0, 0.0, -0.05f));
 			TR = glm::rotate(TR, -z[i].degree, glm::vec3(0.0, 1.0, 0.0));
 			TR = glm::scale(TR, glm::vec3(0.5, 0.5, 0.5));
 			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
@@ -289,12 +290,12 @@ void DrawZombie(glm::mat4 TR, unsigned int modelLocation) {
 void DrawWeapon(glm::mat4 TR, unsigned int modelLocation) {
 	glUseProgram(s_program[0]);
 
-	if		(p.weapon_holding == "handgun")		DrawHandgun(modelLocation);
-	else if (p.weapon_holding == "smg")			DrawSMG(modelLocation);
-	else if (p.weapon_holding == "ar")			DrawAssaultRifle(modelLocation);
-	else if (p.weapon_holding == "sr")			DrawSniperRifle(modelLocation);
-	else if (p.weapon_holding == "shotgun")		DrawShotgun(modelLocation);
-	else if (p.weapon_holding == "chainsaw")	DrawChainsaw(modelLocation);
+	if		(w.type == "Handgun")		DrawHandgun(modelLocation);
+	else if (w.type == "SMG")			DrawSMG(modelLocation);
+	else if (w.type == "AssualtRifle")	DrawAssaultRifle(modelLocation);
+	else if (w.type == "SniperRifle")	DrawSniperRifle(modelLocation);
+	else if (w.type == "Shotgun")		DrawShotgun(modelLocation);
+	// else if (w.type == "chainsaw")	DrawChainsaw(modelLocation);
 }
 
 void DrawHandgun(unsigned int modelLocation) {
@@ -666,8 +667,8 @@ void Keyboard(unsigned char key, int x, int y)
 		break;
 
 	case 'z': case 'Z':
-		for (int i = 0; i < 100; i++) z[i].spawn(time(NULL) + i * 33 / 12);
-		//z[0].spawn();
+		for (int i = 0; i < 100; i++) z[i].spawn(time(NULL) + i * 33 / 12, i);
+		//dz[0].spawn(0, 0);
 		printf("pressed Z\n");
 		break;
 
@@ -675,7 +676,24 @@ void Keyboard(unsigned char key, int x, int y)
 		world_time = "night";
 		break;
 	case 'h':
-		world_time = "day";
+		world_time = "day"; // 낮이 될 때 좀비 시체 모두 처리해야 함
+		break;
+
+
+	case '1':
+		ChangeWeapon(1);
+		break;
+	case '2':
+		ChangeWeapon(2);
+		break;
+	case '3':
+		ChangeWeapon(3);
+		break;
+	case '4':
+		ChangeWeapon(4);
+		break;
+	case '5':
+		ChangeWeapon(5);
 		break;
 	}
 	glutPostRedisplay();
@@ -684,21 +702,28 @@ void Keyboard(unsigned char key, int x, int y)
 void ChangeWeapon(int num) {
 
 	if (can_shoot) {
+		shoot_cooltime = 0;
+
 		switch (num) {
-		case 0: // handgun
-
+		case 1: // handgun
+			w.use("Handgun");
+			shoot_cooltime_limit = w.Handgun.shooting_count_limit;
 			break;
-		case 1: // smg
-
+		case 2: // smg
+			w.use("SMG");
+			shoot_cooltime_limit = w.SMG.shooting_count_limit;
 			break;
-		case 2: // ar
-
+		case 3: // ar
+			w.use("AssualtRifle");
+			shoot_cooltime_limit = w.AssaultRifle.shooting_count_limit;
 			break;
-		case 3: // sr
-
+		case 4: // sr
+			w.use("SniperRifle");
+			shoot_cooltime_limit = w.SniperRifle.shooting_count_limit;
 			break;
-		case 4: // shotgun
-
+		case 5: // shotgun
+			w.use("Shotgun");
+			shoot_cooltime_limit = w.Shotgun.shooting_count_limit;
 			break;
 		}
 	}
@@ -757,47 +782,50 @@ void DrawBulletLine() {
 
 	for (int i = 0; i < 100; i++) {
 		if (!b[i].show) {
-			
-			//b[i].gen(x1, y1, -f_degree + glm::radians(90.0f), i);
-			//// vertex // start
-			//Pos_line[(i * 12)] = b[i].start_xpos + p.x_move;
-			//Pos_line[(i * 12) + 1] = 0.4f;
-			//Pos_line[(i * 12) + 2] = b[i].start_ypos - p.y_move;
 
-			//// normal
-			//Pos_line[(i * 12) + 3] = 0.0f;
-			//Pos_line[(i * 12) + 4] = 1.0f;
-			//Pos_line[(i * 12) + 5] = 0.0f;
+			if (w.type == "Shotgun") {
+				// shotgun
+				b[i].gen(x1, y1, -f_degree + glm::radians(80.0f));
+				b[i + 1].gen(x1, y1, -f_degree + glm::radians(85.0f));
+				b[i + 2].gen(x1, y1, -f_degree + glm::radians(90.0f));
+				b[i + 3].gen(x1, y1, -f_degree + glm::radians(95.0f));
+				b[i + 4].gen(x1, y1, -f_degree + glm::radians(100.0f));
 
-			//// normal
-			//Pos_line[(i * 12) + 9] = 0.0f;
-			//Pos_line[(i * 12) + 10] = 1.0f;
-			//Pos_line[(i * 12) + 11] = 0.0f;
+				// vertex // start
+				for (int s = i; s < i + 5; s++) {
+					Pos_line[(s * 12)] = b[i].start_xpos + p.x_move;
+					Pos_line[(s * 12) + 1] = 0.4f;
+					Pos_line[(s * 12) + 2] = b[i].start_ypos - p.y_move;
 
-			// shotgun
-			b[i].gen(x1, y1, -f_degree + glm::radians(80.0f));
-			b[i+1].gen(x1, y1, -f_degree + glm::radians(85.0f));
-			b[i+2].gen(x1, y1, -f_degree + glm::radians(90.0f));
-			b[i+3].gen(x1, y1, -f_degree + glm::radians(95.0f));
-			b[i+4].gen(x1, y1, -f_degree + glm::radians(100.0f));
-			
-			// vertex // start
-			for (int s = i; s < i + 5; s++) {
-				Pos_line[(s * 12)] = b[i].start_xpos + p.x_move;
-				Pos_line[(s * 12) + 1] = 0.4f;
-				Pos_line[(s * 12) + 2] = b[i].start_ypos - p.y_move;
+					// normal
+					Pos_line[(s * 12) + 3] = 0.0f;
+					Pos_line[(s * 12) + 4] = 1.0f;
+					Pos_line[(s * 12) + 5] = 0.0f;
 
-				// normal
-				Pos_line[(s * 12) + 3] = 0.0f;
-				Pos_line[(s * 12) + 4] = 1.0f;
-				Pos_line[(s * 12) + 5] = 0.0f;
-
-				// normal
-				Pos_line[(s * 12) + 9] = 0.0f;
-				Pos_line[(s * 12) + 10] = 1.0f;
-				Pos_line[(s * 12) + 11] = 0.0f;
+					// normal
+					Pos_line[(s * 12) + 9] = 0.0f;
+					Pos_line[(s * 12) + 10] = 1.0f;
+					Pos_line[(s * 12) + 11] = 0.0f;
+				}
 			}
-			
+			else {
+				b[i].gen(x1, y1, -f_degree + glm::radians(90.0f), i);
+				// vertex // start
+				Pos_line[(i * 12)] = b[i].start_xpos + p.x_move;
+				Pos_line[(i * 12) + 1] = 0.4f;
+				Pos_line[(i * 12) + 2] = b[i].start_ypos - p.y_move;
+
+				// normal
+				Pos_line[(i * 12) + 3] = 0.0f;
+				Pos_line[(i * 12) + 4] = 1.0f;
+				Pos_line[(i * 12) + 5] = 0.0f;
+
+				// normal
+				Pos_line[(i * 12) + 9] = 0.0f;
+				Pos_line[(i * 12) + 10] = 1.0f;
+				Pos_line[(i * 12) + 11] = 0.0f;
+			}
+
 			break;
 		}
 	}
@@ -807,7 +835,16 @@ void UpdateBulletLine() {
 	for (int i = 0; i < 100; i++) {
 		if (b[i].show) {
 			b[i].move(p.x_move, p.y_move);
-
+			for (int k = 0; k < ZOMBIE_COUNT; k++) {
+				if (z[k].hurt_bullet_num != i) { // 맞았던 총알이 아닐 때
+					if (b[i].check_collide(z[k].bb)) {
+						printf("bullet %d, zombie %d col\n", i, k);
+						// k번째 좀비가 충돌. i번째 총알에
+						z[k].knockback(i, w.holding.damage);
+					}
+				}
+			}
+		
 			// vertex // bullet
 			Pos_line[(i * 12) + 6] = b[i].xpos + p.x_move;
 			Pos_line[(i * 12) + 7] = 0.4f;
@@ -1095,7 +1132,6 @@ void SetLight() {
 		glUniform3f(glGetUniformLocation(s_program[0], "dirLight.specular"), 0.1f, 0.1f, 0.1f);
 	}
 
-
 	// point light 1
 	glUniform3f(glGetUniformLocation(s_program[0], "pointLights[0].position"), 0, 0, 0);
 	glUniform3f(glGetUniformLocation(s_program[0], "pointLights[0].ambient"), 0.005f, 0.005f, 0.005f);
@@ -1124,6 +1160,7 @@ void SetLight() {
 	glUniform1f(glGetUniformLocation(s_program[0], "spotLight[0].constant"), 1.0f);
 	glUniform1f(glGetUniformLocation(s_program[0], "spotLight[0].linear"), 0.09f);
 	glUniform1f(glGetUniformLocation(s_program[0], "spotLight[0].quadratic"), 0.032f);
+
 	if (world_time == "day") {
 		glUniform1f(glGetUniformLocation(s_program[0], "spotLight[0].cutOff"), glm::cos(glm::radians(0.0f)));
 		glUniform1f(glGetUniformLocation(s_program[0], "spotLight[0].outerCutOff"), glm::cos(glm::radians(0.0f)));

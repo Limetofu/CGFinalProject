@@ -10,13 +10,37 @@ public:
 	float spawn_xpos;
 	float spawn_ypos;
 
+	float degree;
+	float r;
+
 	const char* state;
 
-	int dead_count;
+	int hp;
+
+	int obj_num;
+	int walk_num;
+	int walk_count;
 
 	RECTANGLE bb;
 
-	void spawn() {
+	void init() {
+		xpos = 20.0;
+		ypos = 20.0;
+		spawn_xpos = 20.0;
+		spawn_ypos = 20.0;
+
+		degree = 0.0f;
+		r = 0.005f;
+
+		state = "hide";
+		hp = 10;
+
+		walk_count = 0;
+		walk_num = 0;
+		obj_num = 0;
+	}
+
+	void spawn(unsigned int rand_seed) {
 		// spawn시 spawn_xpos, ypos 지정.
 		// xpos = spawn_xpos
 
@@ -29,88 +53,39 @@ public:
 		// //      => 아직 나타나지 않은 상태
 
 		// hide -> chase
-		
-	}
+		srand(rand_seed);
 
-	void init() {
-		
-	}
+		init();
 
-	void update() {
-		// 위치, bb 업데이트
-		// state는 main에서
-		if (state == "chase") {
-			bb.left = xpos - 0.5f;
-			bb.right = xpos + 0.5f;
-			bb.bottom = ypos - 0.5f;
-			bb.top = ypos + 0.5f;
+		if (rand() % 2) { // x값 13 고정, y값 랜덤
+			if (rand() % 2) spawn_xpos = 13.0f;
+			else			spawn_xpos = -13.0f;
+			spawn_ypos = rand() % 25 - 12;
 		}
+		else { // y값 13 고정, x값 랜덤
+			spawn_xpos = rand() % 25 - 12;
+			if (rand() % 2) spawn_ypos = 13.0f;
+			else			spawn_ypos = -13.0f;
+		}
+
+		xpos = spawn_xpos, ypos = spawn_ypos;
+		state = "chase";
+		
+	}
+
+	void update(float p_x, float p_y) {
+		degree = mouse_radian(p_x, p_y, xpos, ypos);
+
+		xpos = spawn_xpos - sin(degree) * r;
+		ypos = spawn_ypos - cos(degree) * r;
+
+		spawn_xpos = xpos;
+		spawn_ypos = ypos;
+
+		bb.left = xpos - 0.5f;
+		bb.right = xpos + 0.5f;
+		bb.bottom = ypos - 0.5f;
+		bb.top = ypos + 0.5f;
 	}
 };
 
-typedef struct Point {
-	float x;
-	float y;
-} Point;
-
-typedef struct Line {
-	Point p1;
-	Point p2;
-} Line;
-
-
-int ccw(Point p1, Point p2, Point p3) {
-	float cross_product = (p2.x - p1.x) * (p3.y - p1.y) - (p3.x - p1.x) * (p2.y - p1.y);
-
-	if (cross_product > 0) {
-		return 1;
-	}
-	else if (cross_product < 0) {
-		return -1;
-	}
-	else {
-		return 0;
-	}
-}
-
-int comparator(Point left, Point right) {
-	int ret;
-	if (left.x == right.x) {
-		ret = (left.y <= right.y);
-	}
-	else {
-		ret = (left.x <= right.x);
-	}
-	return ret;
-}
-
-void swap(Point* p1, Point* p2) {
-	Point temp;
-	temp = *p1;
-	*p1 = *p2;
-	*p2 = temp;
-}
-
-int LineIntersection(Line l1, Line l2) {
-	int ret;
-	int l1_l2 = ccw(l1.p1, l1.p2, l2.p1) * ccw(l1.p1, l1.p2, l2.p2);
-	int l2_l1 = ccw(l2.p1, l2.p2, l1.p1) * ccw(l2.p1, l2.p2, l1.p2);
-
-	if (l1_l2 == 0 && l2_l1 == 0) {
-		if (comparator(l1.p2, l1.p1)) swap(&l1.p1, &l1.p2);
-		if (comparator(l2.p2, l2.p1)) swap(&l2.p1, &l2.p2);
-
-		ret = (comparator(l2.p1, l1.p2)) && (comparator(l1.p1, l2.p2));
-	}
-
-	else {
-		ret = (l1_l2 <= 0) && (l2_l1 <= 0);
-	}
-	return ret;
-}
-
-int CollideBulletZombie(float sx1, float sx2, float sy1, float sy2, 
-						float zx1, float zx2, float zy1, float zy2) {
-
-	return LineIntersection({ {sx1, sy1}, {sx2, sy2} }, { {zx1, zy1}, {zx2, zy2} });
-}

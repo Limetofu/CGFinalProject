@@ -31,8 +31,8 @@ public:
 		xdir = 0;
 		ydir = 0;
 
-		x_move = 0.0f;
-		y_move = 0.0f;
+		x_move = 0.5f;
+		y_move = -0.5f;
 
 		max_hp = 15;
 		hp = 15;

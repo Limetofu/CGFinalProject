@@ -37,18 +37,23 @@ void InsertRectanglePos();
 void InsertPlayerObj();
 void InsertWeaponObj();
 void InsertObjectObj();
+void InsertZombieObj();
 void TimerFunction(int value);
 void Mouse(int button, int state, int x, int y);
 void Motion(int x, int y);
 void PassiveMotion(int x, int y);
+void ChangeWeapon(int num);
+
 
 GLfloat mouse_radian(double x1, double y1, double x2, double y2);
 void DrawPlayer(glm::mat4 TR, unsigned int modelLocation);
 void DrawGrassWall(glm::mat4 TR, unsigned int modelLocation);
 void DrawFloor(glm::mat4 TR, unsigned int modelLocation);
 void DrawWeapon(glm::mat4 TR, unsigned int modelLocation);
+void DrawZombie(glm::mat4 TR, unsigned int modelLocation);
 
 void DrawBulletLine();
+void UpdateBulletLine();
 void DrawHandgun(unsigned int modelLocation);
 void DrawSMG(unsigned int modelLocation);
 void DrawAssaultRifle(unsigned int modelLocation);

@@ -8,7 +8,7 @@
 #include "weapon.h"
 #include "zombie.h"
 
-#define ZOMBIE_COUNT 300
+#define ZOMBIE_COUNT 4000
 
 using namespace std;
 
@@ -65,13 +65,15 @@ int show_ortho = false;
 int print_solid = true;
 int bullet_line_count = 0;
 
+float max_reload_count = 0;
 
-
-const char* world_time = "night";
+const char* world_time = "day";
 
 int shoot_cooltime_limit = 20; // handgun = 20
 int shoot_cooltime = 0;
 bool can_shoot = false;
+
+int open_door_count = 16000;
 
 
 glm::vec3 pointLightPositions[] = {
@@ -94,7 +96,9 @@ Bullet b[100];
 Weapon w;
 
 Zombie z[ZOMBIE_COUNT];
-int showed_zombie_count = 0;
+
+int stage = 1;
+int stage_spawn_count = 0;
 
 //--- load obj related variabales
 objRead objReader_left_half;
@@ -199,14 +203,10 @@ int main(int argc, char** argv)
 		
 	}
 	for (int i = 0; i < ZOMBIE_COUNT; i++) {
-		z[i].init();
+		z[i].init(0.0065);
 	}
 	w.use("Handgun");
 	shoot_cooltime_limit = w.Handgun.shooting_count_limit;
-
-	for (int i = 0; i < ZOMBIE_COUNT; i++) {
-		z[i].spawn(time(NULL) + i * 33 / 12, i);
-	}
 
 	// callback functions
 	glutDisplayFunc(Display);
@@ -239,10 +239,6 @@ void Display()
 	SetProjection();
 	SetCamera();
 	SetLight();
-
-	//printf("%d\n", int(glm::degrees(p.face_dir_radian)));
-
-
 
 	DrawFloor(TR, modelLocation);
 	DrawGrassWall(TR, modelLocation);
@@ -506,6 +502,7 @@ void DrawLine(unsigned int modelLocation) {
 void DrawUI() {
 	glUseProgram(s_program[1]);
 
+	glDisable(GL_DEPTH_TEST);
 	glBindVertexArray(VAO_bullet);
 	glm::mat4 emptyPR = glm::mat4(1.0f);
 	glm::mat4 emptyVR = glm::mat4(1.0f);
@@ -514,11 +511,34 @@ void DrawUI() {
 	glUniformMatrix4fv(glGetUniformLocation(s_program[1], "viewTransform"),
 		1, GL_FALSE, glm::value_ptr(emptyVR));
 
-	// hp
-	glUniform3f(glGetUniformLocation(s_program[1], "color"), 0.0, 1.0, 0.0);
+	float remain_bullet_rate = float(w.holding.bullet_count) / float(w.holding.max_bullet_count);
+	float remain_hp_rate = float(p.hp) / float(p.max_hp);
+	float remain_reload_rate = float(w.reload_count) / float(max_reload_count);
+
+	glUniform3f(glGetUniformLocation(s_program[1], "color"), 0.0, 0.0, 0.0);
 	glm::mat4 TR = glm::mat4(1.0f);
 	TR = glm::translate(TR, glm::vec3(-0.7, 0.85, -0.1));
-	TR = glm::scale(TR, glm::vec3(0.4, 0.085, 1.0));
+	TR = glm::scale(TR, glm::vec3(0.5, 0.085, 1.0));
+	glUniformMatrix4fv(glGetUniformLocation(s_program[1], "modelTransform"),
+		1, GL_FALSE, glm::value_ptr(TR));
+	glDrawArrays(GL_TRIANGLES, 18, 6);
+	TR = glm::mat4(1.0f);
+	TR = glm::translate(TR, glm::vec3(-0.7, 0.75, -0.1));
+	TR = glm::scale(TR, glm::vec3(0.5, 0.085, 1.0));
+	glUniformMatrix4fv(glGetUniformLocation(s_program[1], "modelTransform"),
+		1, GL_FALSE, glm::value_ptr(TR));
+	glDrawArrays(GL_TRIANGLES, 18, 6);
+
+	// hp
+	glUniform3f(glGetUniformLocation(s_program[1], "color"), 0.0, 1.0, 0.0);
+	TR = glm::mat4(1.0f);
+	TR = glm::translate(TR, glm::vec3(-0.7, 0.85, 0.0));	
+	TR = glm::scale(TR, glm::vec3(0.5, 0.085, 1.0));
+
+	TR = glm::translate(TR, glm::vec3(-0.5, 0.0, 0.0));
+	TR = glm::scale(TR, glm::vec3(remain_hp_rate, 1.0, 1.0));
+	TR = glm::translate(TR, glm::vec3(0.5, 0.0, 0.0));
+
 	glUniformMatrix4fv(glGetUniformLocation(s_program[1], "modelTransform"),
 		1, GL_FALSE, glm::value_ptr(TR));
 	glDrawArrays(GL_TRIANGLES, 24, 6);
@@ -526,15 +546,42 @@ void DrawUI() {
 	// bullet
 	glUniform3f(glGetUniformLocation(s_program[1], "color"), 1.0, 0.5, 0.0);
 	TR = glm::mat4(1.0f);
-	TR = glm::translate(TR, glm::vec3(-0.7, 0.75, -0.1));
+	TR = glm::translate(TR, glm::vec3(-0.7, 0.75, 0.0));
+	TR = glm::scale(TR, glm::vec3(0.5, 0.085, 1.0));
 
-	//float remain_bullet_rate = float(w.holding.bullet_count) / float(w.holding.max_bullet_count);
-	//TR = glm::scale(TR, glm::vec3(0.4 * remain_bullet_rate, 0.085, 1.0));
+	TR = glm::translate(TR, glm::vec3(-0.5, 0.0, 0.0));
+	TR = glm::scale(TR, glm::vec3(remain_bullet_rate, 1.0, 1.0));
+	TR = glm::translate(TR, glm::vec3(0.5, 0.0, 0.0));
 
-	TR = glm::scale(TR, glm::vec3(0.4, 0.085, 1.0));
 	glUniformMatrix4fv(glGetUniformLocation(s_program[1], "modelTransform"),
 		1, GL_FALSE, glm::value_ptr(TR));
 	glDrawArrays(GL_TRIANGLES, 24, 6);
+
+	// reloading
+	glUniform3f(glGetUniformLocation(s_program[1], "color"), 0.95, 0.8, 0.1);
+	TR = glm::mat4(1.0f);
+	TR = glm::translate(TR, glm::vec3(-0.7, 0.715, 0.0));
+	TR = glm::scale(TR, glm::vec3(0.5, 0.015, 1.0));
+
+	TR = glm::translate(TR, glm::vec3(-0.5, 0.0, 0.0));
+	TR = glm::scale(TR, glm::vec3(remain_reload_rate, 1.0, 1.0));
+	TR = glm::translate(TR, glm::vec3(0.5, 0.0, 0.0));
+
+	glUniformMatrix4fv(glGetUniformLocation(s_program[1], "modelTransform"),
+		1, GL_FALSE, glm::value_ptr(TR));
+	glDrawArrays(GL_TRIANGLES, 24, 6);
+
+	if (w.type != "Handgun" && w.holding.full_bullet < 6) {
+		glUniform3f(glGetUniformLocation(s_program[1], "color"), 0.95, 0.1, 0.1);
+		for (int i = 0; i < w.holding.full_bullet; i++) {
+			TR = glm::mat4(1.0f);
+			TR = glm::translate(TR, glm::vec3(-0.94 + (i * 0.02), 0.715, 0.0));
+			TR = glm::scale(TR, glm::vec3(0.015, 0.015, 1.0));
+			glUniformMatrix4fv(glGetUniformLocation(s_program[1], "modelTransform"),
+				1, GL_FALSE, glm::value_ptr(TR));
+			glDrawArrays(GL_TRIANGLES, 24, 6);
+		}
+	}
 }
 
 void InitTexture() {
@@ -584,6 +631,61 @@ void SetCamera() {
 	glUniformMatrix4fv(viewLocationLine, 1, GL_FALSE, glm::value_ptr(VR));
 }
 
+void ChangeStage() {
+	// stage 0
+	// 5, 20번
+
+	// stage 1
+	// 5, 40번
+
+	// stage 2
+	// 10, 40번
+
+	// stage 3
+	// 15, 20번
+
+	// stage 4
+	// 20, 20번
+
+	world_time = "night";
+	stage++;
+	if (stage == 1) {
+		for (int i = 0; i < ZOMBIE_COUNT; i++) {
+			z[i].init(0.0075);
+			open_door_count = 16000;
+		}
+	}
+	else if (stage == 2) {
+		for (int i = 0; i < ZOMBIE_COUNT; i++) {
+			z[i].init(0.0085);
+			open_door_count = 16000;
+		}
+	}
+	else if (stage == 3) {
+		for (int i = 0; i < ZOMBIE_COUNT; i++) {
+			z[i].init(0.0095);
+			open_door_count = 8000;
+		}
+	}
+	else if (stage == 4) {
+		for (int i = 0; i < ZOMBIE_COUNT; i++) {
+			z[i].init(0.0110);
+			open_door_count = 8000;
+		}
+	}
+}
+
+void SpawnZombie(int n) {
+	for (int i = 0; i < n; i++) {
+		for (int k = 0; k < ZOMBIE_COUNT; k++) {
+			if (z[k].state == "hide" || z[k].state == "dead") {
+				z[k].spawn(time(NULL) + k * 13, k);
+				k = ZOMBIE_COUNT - 1;
+			}
+		}
+	}
+}
+
 void TimerFunction(int value) {
 	if (player_anime) {
 		switch (p.walk_num) {
@@ -604,6 +706,7 @@ void TimerFunction(int value) {
 		p.walk_num = 0;
 		p.obj_num = 4;
 	}
+	p.update();
 
 	for (int i = 0; i < ZOMBIE_COUNT; i++) {
 		switch (z[i].walk_num) {
@@ -618,7 +721,47 @@ void TimerFunction(int value) {
 			z[i].walk_num = (z[i].walk_num + 1) % 5;
 		}
 		z[i].walk_count++;
+
+		if (p.check_collide(z[i].bb) && z[i].state == "chase") {
+			p.hit();
+		}
+
+		if (z[i].state == "chase") {
+			z[i].update(p.x_move, p.y_move);
+		}
 	}
+
+	if (stage == 0) {
+		if (open_door_count % 400 == 0) {
+			SpawnZombie(30);
+		}
+	}
+	else if (stage == 1) {
+		if (open_door_count % 400 == 0) {
+			SpawnZombie(20);
+		}
+	}
+	else if (stage == 2) {
+		if (open_door_count % 400 == 0) {
+			SpawnZombie(30);
+		}
+	}
+	else if (stage == 3) {
+		if (open_door_count % 400 == 0) {
+			SpawnZombie(40);
+		}
+	}
+	else if (stage == 4) {
+		if (open_door_count % 400 == 0) {
+			SpawnZombie(40);
+		}
+	}
+
+	if (open_door_count >= 1) {
+		open_door_count--;
+	}
+	
+
 
 	float player_speed = p.velocity / 75;
 	
@@ -652,7 +795,7 @@ void TimerFunction(int value) {
 	}
 
 	if (left_button) {
-		if (can_shoot) {
+		if (can_shoot && !w.reloading) {
 			DrawBulletLine();
 			// 쏠 때 탄창 감소 함수
 			shoot_cooltime = 0;
@@ -660,14 +803,7 @@ void TimerFunction(int value) {
 		}
 	}
 
-	for (int i = 0; i < ZOMBIE_COUNT; i++) {
-		if (z[i].state == "chase") {
-			z[i].update(p.x_move, p.y_move);
-		}
-	}
-
-
-
+	if (w.reloading) w.update();
 
 	UpdateBulletLine();
 
@@ -704,12 +840,19 @@ void Keyboard(unsigned char key, int x, int y)
 		break;
 
 	case 'r': case 'R': // Reload
-
+		max_reload_count = w.reload();
 		break;
 
 	case 'z': case 'Z':
+		if (world_time == "day") {
+			ChangeStage();
+		}
+		break;
 
-
+	case 'o': case 'O':
+		for (int i = 0; i < 400; i++) {
+			z[i].spawn(time(NULL), i);
+		}
 		break;
 
 	case 'n':
@@ -718,7 +861,6 @@ void Keyboard(unsigned char key, int x, int y)
 	case 'h':
 		world_time = "day"; // 낮이 될 때 좀비 시체 모두 처리해야 함
 		break;
-
 
 	case '1':
 		ChangeWeapon(1);
@@ -743,7 +885,6 @@ void ChangeWeapon(int num) {
 
 	if (can_shoot) {
 		shoot_cooltime = 0;
-		printf("pressed num\n");
 		switch (num) {
 		case 1: // handgun
 			w.use("Handgun");
@@ -767,7 +908,6 @@ void ChangeWeapon(int num) {
 			break;
 		}
 	}
-	
 }
 
 void KeyboardUp(unsigned char key, int x, int y) {
@@ -822,7 +962,6 @@ void DrawBulletLine() {
 
 	for (int i = 0; i < 100; i++) {
 		if (!b[i].show) {
-
 			if (w.type == "Shotgun") {
 				// shotgun
 				b[i].gen(x1, y1, -f_degree + glm::radians(80.0f));
@@ -867,6 +1006,9 @@ void DrawBulletLine() {
 			}
 
 			w.holding.bullet_count--;
+			if (w.holding.bullet_count <= 0) {
+				max_reload_count = w.reload();
+			}
 
 			break;
 		}

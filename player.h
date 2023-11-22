@@ -36,8 +36,8 @@ public:
 		x_move = 0.0f;
 		y_move = 0.0f;
 
-		max_hp = 15;
-		hp = 15;
+		max_hp = 30;
+		hp = 31;
 		hp_rezen_speed = 1.0f;
 
 		velocity = 1.0f;
@@ -50,12 +50,22 @@ public:
 
 		state = "idle";
 		hit_count = 0;
+
+		bb.left = -0.2f;
+		bb.right = 0.2f;
+		bb.bottom = -0.2f;
+		bb.top = 0.2f;
 	}
 	
 	void hit() {
-		hp--;
-		state = "hit";
-		hit_count = 10;
+		if (state == "idle") {
+			//hp--;
+			state = "hit";
+			hit_count = 30;
+			if (hp <= 0) {
+				die();
+			}
+		}
 	}
 
 	void update() {
@@ -63,10 +73,24 @@ public:
 			if (hit_count <= 0) {
 				hit_count = 0;
 				state = "idle";
+				printf("idled\n");
 			}
 			else {
 				hit_count--;
 			}
 		}
+	}
+	
+	void die() {
+		state = "dead";
+		init();
+	}
+
+	int check_collide(RECTANGLE zbb) {
+		if (zbb.left > bb.right) return false;
+		if (zbb.right < bb.left) return false;
+		if (zbb.bottom > bb.top) return false;
+		if (zbb.top < bb.bottom) return false;
+		return true;
 	}
 };

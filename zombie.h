@@ -31,17 +31,17 @@ public:
 
 	RECTANGLE bb;
 
-	void init() {
+	void init(float rplus) {
 		xpos = 200.0;
 		ypos = 200.0;
 		spawn_xpos = 200.0;
 		spawn_ypos = 200.0;
 
 		degree = 0.0f;
-		r = 0.005f;
+		r = rplus;
 
 		state = "hide";
-		hp = 3;
+		hp = 5;
 		can_spawn = false;
 
 		walk_count = 0;
@@ -54,19 +54,26 @@ public:
 	}
 
 	void spawn(unsigned int rand_seed, int n) {
-		// spawn시 spawn_xpos, ypos 지정.
-		// xpos = spawn_xpos
 
-		// state를 플레이어 따라오게 지정
-		//  1. chase
-		// //      => chase 상태일때만 obj 파일 출력
-		//  2. dead -> 핏자국
-		// //      => timer 설정, dead_count++, dead_count가 일정 count가 되면 사라지게.
-		//  3. hide
-		// //      => 아직 나타나지 않은 상태
+		xpos = 200.0;
+		ypos = 200.0;
+		spawn_xpos = 200.0;
+		spawn_ypos = 200.0;
+
+		degree = 0.0f;
+		state = "hide";
+		hp = 5;
+		can_spawn = false;
+
+		walk_count = 0;
+		walk_num = 0;
+		obj_num = 0;
+		knockbacking = false;
+		knockback_count = 0;
+
+		num = -1;
 
 		srand(rand_seed);
-		init();
 
 		num = n;
 		can_spawn = false;

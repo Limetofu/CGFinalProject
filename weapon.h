@@ -18,16 +18,17 @@ typedef struct Stat {
 
 class Weapon {
 public:
-	Stat Handgun = {1000, 10, 10, 20, 1.0f, 1.0f};
-	Stat SMG = {5, 40, 40, 3, 0.5f, 0.7f};
-	Stat AssaultRifle = {5, 30, 30, 9, 1.5f, 1.0f};
+	Stat Handgun = {1000, 10, 10, 20, 0.2f, 1.0f};
+	Stat SMG = {5, 40, 40, 3, 0.1f, 0.7f};
+	Stat AssaultRifle = {5, 30, 30, 9, 0.5f, 1.0f};
 	Stat SniperRifle = {3, 7, 7, 120, 10.0f, 1.5f};
 	Stat Shotgun = {4, 5, 5, 100, 2.5f, 3.0f};
 
 	Stat holding = Handgun;
 
 	const char* type;
-	float reload_count;
+	float reload_count = 0.0f;
+	int reloading = false;
 
 	void use(const char* w) {
 		type = w;
@@ -48,8 +49,29 @@ public:
 		}
 	}
 
+	float reload() {
+		if (holding.full_bullet == 0) {
+			reloading = -1;
+			return 0;
+		}
+		else {
+			reload_count = holding.reload_speed * 200;
+			reloading = true;
+			return reload_count;
+		}
+	}
 	void update() {
-		;
+		if (reloading) {
+			if (reload_count <= 0) {
+				reload_count = 0;
+				holding.full_bullet--;
+				holding.bullet_count = holding.max_bullet_count;
+				reloading = false;
+			}
+			else {
+				reload_count -= 1;
+			}
+		}
 	}
 };
 
@@ -100,10 +122,10 @@ public:
 		xpos = start_xpos + cos(double(degree)) * r;
 		ypos = start_ypos + sin(double(degree)) * r;
 
-		bb.left = xpos - 0.2f;
-		bb.right = xpos + 0.2f;
-		bb.bottom = ypos - 0.2f;
-		bb.top = ypos + 0.2f;
+		bb.left = xpos - 0.1f;
+		bb.right = xpos + 0.1f;
+		bb.bottom = ypos - 0.1f;
+		bb.top = ypos + 0.1f;
 
 		// 좌표 일정 거리 넘어서면 삭제
 				
